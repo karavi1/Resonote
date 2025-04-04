@@ -1,6 +1,3 @@
-Resonote (Research + Note + Resonance) is a research-focused, modular reading and reflection data-agnostic system designed to help you build intentional and critical reading habits, retain insights, and connect ideas across any field. Resonote encourages critical engagement by combining content ingestion, thoughtful curation, structured indexing, and lightweight reflection — with support for future expansion into knowledge graphs and external integrations.
-
-
 # Resonote
 Resonote (Research + Note + Resonance) is a research-focused, modular reading and reflection data-agnostic system designed to help you build intentional and critical reading habits, retain insights, and connect ideas across any field. Resonote encourages critical engagement by combining content ingestion, thoughtful curation, structured indexing, and lightweight reflection — with support for future expansion into knowledge graphs and external integrations. It will serve users to build effective, consistent reading habits and enhance memory, accuracy, and critical thinking.
 
@@ -57,18 +54,16 @@ resonote/
 
 ## Backend Setup
 
-# 1. Navigate to backend
+```bash
 cd backend
 
-# 2. Set up virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Install dependencies
 pip3 install -r requirements.txt
 
-# 4. Run the development server
 python3 run.py
+```
 
 Visit: http://localhost:5000/api
 
@@ -77,17 +72,12 @@ Visit: http://localhost:5000/api
 
 ## Frontend Setup
 
-# 1. Navigate to frontend
+```bash
 cd frontend
-
-# 2. Scaffold SvelteKit app (if not done already)
 npx sv create .
-
-# 3. Install dependencies
 npm install
-
-# 4. Run the dev server
 npm run dev
+```
 
 Visit: http://localhost:5173
 
@@ -95,4 +85,6 @@ Visit: http://localhost:5173
 
 ## Running Tests
 
+```bash
 pytest
+```
