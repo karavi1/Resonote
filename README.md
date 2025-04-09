@@ -82,16 +82,10 @@ pipeline_run.py: Script to run ingestion + curation pipeline manually for testin
 ## Backend Setup
 
 Initialize DB (one-time): `python backend/init_db.py`
+
 Run the Ingestion & Curation Pipeline: `python backend/pipeline_run.py`
+
 Start API Server: `python backend/run.py`
-
-- Access API endpoints like:
-
-    - GET /api/articles
-
-    - POST /api/articles/<id>/mark-read
-
-    - POST /api/articles/<id>/favorite
 
 ```bash
 cd backend
