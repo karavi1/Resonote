@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text
+from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
 
@@ -17,3 +17,4 @@ class CuratedArticle(Base):
     estimated_reading_time_min = Column(Integer)
     reading_status = Column(String(50), default="unread")
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    favorite = Column(Boolean, default=False)

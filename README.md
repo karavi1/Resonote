@@ -24,9 +24,9 @@ db/: Database layer with SQLAlchemy models, session setup, and schema init.
 
 services/: Core backend services organized by domain (ingestion, curation, etc.).
 
-ingestion/: Scrapers and ingestion logic for fetching raw content from external sources.
+ingestion/: Scrapers and ingestion logic for fetching metadata from external sources.
 
-curation/: Cleans content and extracts metadata (title, tags, read time).
+curation/: Cleans and extracts metadata (title, tags, read time).
 
 routes/: Flask API route handlers for articles, ingestion, and status updates.
 
@@ -120,4 +120,16 @@ Visit: http://localhost:5173
 
 ```bash
 pytest
+```
+Example curl commands:
+```bash
+# Get all favorite articles
+curl "http://localhost:5000/api/articles?favorite=true"
+
+# Get unread tech articles
+curl "http://localhost:5000/api/articles?status=unread&tag=tech"
+
+# Get favorite Reddit articles about AI
+curl "http://localhost:5000/api/articles?source=reddit&favorite=true&tag=ai"
+
 ```
