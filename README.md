@@ -15,44 +15,83 @@ Tech: Built with a **Flask backend** and **SvelteKit frontend**, Resonote focuse
 
 ---
 
-## Project Structure
+## Project Breakdown
 
 ```bash
-resonote/
-├── backend/                            # Flask backend application
-│   ├── app/                            # Main backend package
-│   │   ├── __init__.py                 # Python module marker
-│   │   ├── main.py                     # Flask app factory
-│   │   ├── config.py                   # App configuration (dev/prod/etc.)
-│   │   ├── models/                     # SQLAlchemy or Pydantic models
-│   │   ├── routes/                     # Flask Blueprints (API routes)
-│   │   ├── services/                   # Core logic: ingestion, curation, etc.
-│   │   ├── core/                       # NLP, vector indexing, AI utils
-│   │   └── db/                         # Database setup, session, migrations
-│   ├── scripts/                        # CLI tools for scraping, seeding, etc.
-│   ├── tests/                          # Unit + integration tests (pytest)
-│   ├── requirements.txt                # Python dependencies
-│   └── run.py                          # Entry point for running Flask app
-│
-├── frontend/                           # SvelteKit frontend application
-│   ├── public/                         # Static assets (favicons, etc.)
-│   ├── src/
-│   │   ├── routes/                     # SvelteKit file-based routing
-│   │   ├── components/                 # Shared UI components
-│   │   ├── lib/                        # Stores, utils, helper functions
-│   │   └── App.svelte                  # Root Svelte component
-│   ├── svelte.config.js                # SvelteKit config
-│   ├── vite.config.js                  # Vite bundler config
-│   └── package.json                    # Frontend dependencies + scripts
-│
-├── .env                                # Environment variables for local dev
-├── README.md                           # Project overview and setup guide
-└── pyproject.toml (optional)           # Python project metadata (if needed)
+app/: Root application directory containing all backend logic and structure.
+
+db/: Database layer with SQLAlchemy models, session setup, and schema init.
+
+services/: Core backend services organized by domain (ingestion, curation, etc.).
+
+ingestion/: Scrapers and ingestion logic for fetching raw content from external sources.
+
+curation/: Cleans content and extracts metadata (title, tags, read time).
+
+routes/: Flask API route handlers for articles, ingestion, and status updates.
+
+main.py: Flask app factory that initializes routes and app config.
+
+run.py: Entry point to start the Flask API server (python run.py).
+
+pipeline_run.py: Script to run ingestion + curation pipeline manually for testing.
+
 ```
+
+---
+## Overall Data Flow Architecture
+
+                         +-----------------------+
+                         |    Ingestion Layer    |
+                         |-----------------------|
+                         | RedditScraper         |
+                         | ReutersScraper        |
+                         +-----------+-----------+
+                                     |
+                                     v
+                         +-----------------------+
+                         |    Curation Engine     |
+                         |-----------------------|
+                         | Clean HTML             |
+                         | Extract Metadata       |
+                         | Estimate Read Time     |
+                         +-----------+-----------+
+                                     |
+                                     v
+                         +------------------------+
+                         |      Indexing & DB     |
+                         |------------------------|
+                         | AWS RDS (MySQL)        |
+                         | CuratedArticle table   |
+                         +-----------+------------+
+                                     |
+                                     v
+                      +-----------------------------+
+                      |        Flask API Server      |
+                      |-----------------------------|
+                      | /api/articles                |
+                      | /api/articles/:id/mark-read  |
+                      | /api/articles/:id/favorite   |
+                      +-----------------------------+
+                                     |
+                                     v
+                          (Coming Soon: React/Svelte UI)
 
 ---
 
 ## Backend Setup
+
+Initialize DB (one-time): `python backend/init_db.py`
+Run the Ingestion & Curation Pipeline: `python backend/pipeline_run.py`
+Start API Server: `python backend/run.py`
+
+- Access API endpoints like:
+
+    - GET /api/articles
+
+    - POST /api/articles/<id>/mark-read
+
+    - POST /api/articles/<id>/favorite
 
 ```bash
 cd backend
