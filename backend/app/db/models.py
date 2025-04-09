@@ -12,7 +12,6 @@ class CuratedArticle(Base):
     author = Column(String(256), nullable=True)
     url = Column(Text)
     url_hash = Column(String(64), unique=True)
-    content = Column(Text)
     source = Column(String(100))
     tags = Column(String(512))
     estimated_reading_time_min = Column(Integer)

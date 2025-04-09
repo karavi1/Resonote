@@ -21,7 +21,6 @@ def save_curated_article(db: Session, article_data: dict, retries=3, delay=0.5):
                 author=article_data["metadata"].get("author"),
                 url=url,
                 url_hash=url_hash,
-                content=article_data["content"],
                 source=article_data["metadata"].get("source", "unknown"),
                 tags=tags,
                 estimated_reading_time_min=article_data["metadata"]["estimated_reading_time_min"],

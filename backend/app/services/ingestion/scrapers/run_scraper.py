@@ -10,9 +10,10 @@ def run():
         for i, article in enumerate(results):
             print(f"\n{i+1}. {article['title']}")
             print(f"URL: {article['url']}")
+            print(f"Author: {article.get('author')}")
+            print(f"Tags: {', '.join(article.get('tags', []))}")
             print(f"Source: {article['source']}")
             print(f"Timestamp: {article['timestamp']}")
-            print(f"Content Preview: {article['content'][:200]}...\n")
 
         with open("reuters_output.json", "w") as f:
             json.dump(results, f, indent=2)
