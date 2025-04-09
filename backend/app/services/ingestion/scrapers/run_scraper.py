@@ -1,4 +1,4 @@
-from reuters_scraper import ReutersScraper
+from app.services.ingestion.scrapers.reuters_scraper import ReutersScraper
 import json
 
 def run():
@@ -14,7 +14,6 @@ def run():
             print(f"Timestamp: {article['timestamp']}")
             print(f"Content Preview: {article['content'][:200]}...\n")
 
-        # Optional: Save to JSON
         with open("reuters_output.json", "w") as f:
             json.dump(results, f, indent=2)
 

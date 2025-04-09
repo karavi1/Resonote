@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
@@ -8,6 +9,7 @@ class BaseScraper(ABC):
         if headless:
             options.add_argument("--headless")
         self.driver = webdriver.Firefox(options=options)
+        self.driver.implicitly_wait(10)
 
     @abstractmethod
     def fetch_headlines(self, max_count=5):
@@ -21,7 +23,6 @@ class BaseScraper(ABC):
 
     def ingest(self, max_count=5):
         """Return a structured list of ingested content for downstream use."""
-        from datetime import datetime
         articles = self.fetch_headlines(max_count=max_count)
         output = []
         for a in articles:

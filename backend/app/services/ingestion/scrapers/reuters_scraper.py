@@ -1,4 +1,4 @@
-from app.services.ingestion.base_scraper import BaseScraper
+from app.services.ingestion.scrapers.base_scraper import BaseScraper
 from bs4 import BeautifulSoup
 import time
 
