@@ -6,5 +6,7 @@ def create_app():
     app.config.from_pyfile("config.py")
 
     app.register_blueprint(example_bp, url_prefix="/api")
+    for rule in app.url_map.iter_rules():
+        print(f"{rule.methods} -> {rule.rule}")
 
     return app

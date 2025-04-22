@@ -12,7 +12,7 @@ def save_curated_article(db: Session, article_data: dict, retries=3, delay=0.5):
 
     for attempt in range(retries):
         try:
-            existing = db.query(CuratedArticle).filter_by(url_hash=url_hash).first()
+            existing = db.query(CuratedArticle).filter(CuratedArticle.url_hash == url_hash).first()
             if existing:
                 return existing
 

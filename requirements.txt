@@ -22,3 +22,5 @@ newspaper3k
 lxml_html_clean
 pymysql
 python-dotenv
+flask
+dotenv

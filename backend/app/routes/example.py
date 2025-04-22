@@ -1,11 +1,34 @@
-from collections import Counter
-from flask import Blueprint, jsonify, request
+from app.db.models import CuratedArticle, Reflection
 from app.db.session import SessionLocal
-from app.db.models import CuratedArticle
 from app.services.ingestion.scrapers.reuters_scraper import ReutersScraper
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
+from collections import Counter
+from flask import Blueprint, jsonify, request
 
+#### TODO: EXPORT ALL OF THESE TO THE CORRESPONDING SERVICES FILES
+
+#### TODO: RENAME THIS TO SOMETHING MORE MEANINGFUL
 example_bp = Blueprint("example", __name__)
+
+@example_bp.route("/", methods=["GET"])
+def api_root():
+    return jsonify({
+        "message": "Welcome to the Resonote API!",
+        "endpoints": [
+            "/api/hello",
+            "/api/articles",
+            "/api/tags",
+            "/api/reflect/<article_id>",
+            "/api/articles/<article_id>/mark-read",
+            "/api/articles/<article_id>/favorite",
+            "/api/ingest/reuters",
+            "/api/ingest/reddit"
+        ]
+    })
+
+@example_bp.route("/hello")
+def hello():
+    return "Hello from blueprint!" # Access at http://localhost:5000/api/hello
 
 @example_bp.route("/ingest/reuters", methods=["GET"])
 def ingest_reuters():
@@ -24,11 +47,6 @@ def ingest_reddit_news():
         return jsonify(results) # Access at http://localhost:5000/api/ingest/reddit
     finally:
         scraper.close()
-
-
-@example_bp.route("/hello")
-def hello():
-    return "Hello from blueprint!" # Access at http://localhost:5000/api/hello
 
 @example_bp.route("/articles", methods=["GET"])
 def list_articles():
@@ -134,3 +152,34 @@ def toggle_favorite(article_id):
     finally:
         db.close()
 
+@example_bp.route("/reflect/<int:article_id>", methods=["POST"])
+def make_reflection(article_id):
+    db = SessionLocal()
+    try:
+        data = request.get_json()
+        if not data or "content" not in data:
+            return jsonify({"error": "Missing reflection content"}), 400
+
+        content = data["content"]
+
+        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+
+        reflection = Reflection(
+            article_id=article_id,
+            content=content
+        )
+
+        db.add(reflection)
+        db.commit()
+        db.refresh(reflection)
+
+        return jsonify({
+            "message": "Reflection saved",
+            "reflection_id": reflection.id,
+            "article_title": article.title
+        }), 201
+
+    finally:
+        db.close()
