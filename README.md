@@ -1,7 +1,7 @@
 # Resonote
 Resonote (Research + Note + Resonance) is a research-focused, modular reading and reflection data-agnostic system designed to help you build intentional and critical reading habits, retain insights, and connect ideas across any field. Resonote encourages critical engagement by combining content ingestion, thoughtful curation, structured indexing, and lightweight reflection — with support for future expansion into knowledge graphs and external integrations. It will serve users to build effective, consistent reading habits and enhance memory, accuracy, and critical thinking.
 
-Tech: Built with a **Flask backend** and **SvelteKit frontend**, Resonote focuses on transparency, personalization, and long-term learning across any knowledge domain.
+Tech: Built with a **Flask backend** and **React/Vite frontend**, Resonote focuses on transparency, personalization, and long-term learning across any knowledge domain.
 
 ---
 
@@ -75,7 +75,7 @@ pipeline_run.py: Script to run ingestion + curation pipeline manually for testin
                       +-----------------------------+
                                      |
                                      v
-                          (Coming Soon: React/Svelte UI)
+                          (Coming Soon: React UI)
 
 ---
 
@@ -105,10 +105,8 @@ Visit: http://localhost:5000/api
 
 ## Frontend Setup
 
+React + Vite
 ```bash
-cd frontend
-npx sv create .
-npm install
 npm run dev
 ```
 
@@ -157,6 +155,10 @@ curl "http://localhost:5000/api/articles?limit=5&offset=5"
 # GET: Get a list of all tags with frequency counts
 curl http://localhost:5000/api/tags
 
+# GET: Get reflection for a specific article
+curl http://localhost:5000/api/reflect/fetch/2
+
+
 
 ### POSTs ###
 
@@ -166,9 +168,16 @@ curl -X POST http://localhost:5000/api/articles/1/mark-read
 # POST: Toggle an article's favorite status
 curl -X POST http://localhost:5000/api/articles/1/favorite
 
-# POST: Create a reflection on a specific article
-curl -X POST http://localhost:5000/api/reflect/15 \
-     -H "Content-Type: application/json" \
-     -d '{"content": "This article gave me a fresh perspective on data privacy."}'
+# POST: Make a reflection for an article
+curl -X POST http://localhost:5000/api/reflect/make/2 \
+  -H "Content-Type: application/json" \
+  -d '{"content": "This article made me rethink my assumptions about a subject."}'
+
+# POST: Update reflection for an article
+curl -X POST http://localhost:5000/api/reflect/update/2 \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Updated reflection — even more convinced about the implications now."}'
+
+
 
 ```

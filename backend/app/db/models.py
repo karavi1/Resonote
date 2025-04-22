@@ -27,9 +27,9 @@ class Reflection(Base):
     __tablename__ = "reflections"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    article_id: Mapped[int] = mapped_column(ForeignKey("curated_articles.id"))
+    article_id: Mapped[int] = mapped_column(ForeignKey("curated_articles.id"), unique=True)
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-
+    
     article: Mapped["CuratedArticle"] = relationship("CuratedArticle", back_populates="reflections")

@@ -1,6 +1,6 @@
 from app.services.ingestion.service import ingest_reuters, ingest_reddit_news
 from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite
-from app.services.reflection.service import make_reflection
+from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection
 from flask import Blueprint, current_app, jsonify, request
 
 core_bp = Blueprint("core", __name__)
@@ -60,6 +60,14 @@ def toggle_favorite_route(article_id):
 
 # Reflection Endpoints
 
-@core_bp.route("/reflect/<int:article_id>", methods=["POST"])
+@core_bp.route("/reflect/make/<int:article_id>", methods=["POST"])
 def make_reflection_route(article_id):
     return make_reflection(request.get_json(), article_id)
+
+@core_bp.route("/reflect/fetch/<int:article_id>", methods=["GET"])
+def fetch_reflection_route(article_id):
+    return fetch_reflection(article_id)
+
+@core_bp.route("/reflect/update/<int:article_id>", methods=["POST"])
+def update_reflection_route(article_id):
+    return update_reflection(request.get_json(), article_id)
