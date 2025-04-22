@@ -118,18 +118,57 @@ Visit: http://localhost:5173
 
 ## Running Tests
 
-```bash
-pytest
-```
 Example curl commands:
 ```bash
-# Get all favorite articles
+
+
+### GETs ###
+
+# GET: Welcome message with list of available endpoints
+curl http://localhost:5000/api/
+
+# GET: Hello World check
+curl http://localhost:5000/api/hello
+
+# GET: Ingest 5 articles from Reuters
+curl http://localhost:5000/api/ingest/reuters
+
+# GET: Ingest 5 trending articles from Reddit
+curl http://localhost:5000/api/ingest/reddit
+
+# GET: Fetch the latest 10 articles (default limit)
+curl http://localhost:5000/api/articles
+
+# GET: Filter articles by source
+curl "http://localhost:5000/api/articles?source=Reuters"
+
+# GET: Filter articles by reading status
+curl "http://localhost:5000/api/articles?status=unread"
+
+# GET: Filter articles by favorite status (true/false)
 curl "http://localhost:5000/api/articles?favorite=true"
 
-# Get unread tech articles
-curl "http://localhost:5000/api/articles?status=unread&tag=tech"
+# GET: Filter articles by tag substring (case-insensitive match)
+curl "http://localhost:5000/api/articles?tag=lifestyle"
 
-# Get favorite Reddit articles about AI
-curl "http://localhost:5000/api/articles?source=reddit&favorite=true&tag=ai"
+# GET: Pagination — fetch next set of results
+curl "http://localhost:5000/api/articles?limit=5&offset=5"
+
+# GET: Get a list of all tags with frequency counts
+curl http://localhost:5000/api/tags
+
+
+### POSTs ###
+
+# POST: Mark an article as "read"
+curl -X POST http://localhost:5000/api/articles/1/mark-read
+
+# POST: Toggle an article's favorite status
+curl -X POST http://localhost:5000/api/articles/1/favorite
+
+# POST: Create a reflection on a specific article
+curl -X POST http://localhost:5000/api/reflect/15 \
+     -H "Content-Type: application/json" \
+     -d '{"content": "This article gave me a fresh perspective on data privacy."}'
 
 ```
