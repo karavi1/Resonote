@@ -34,10 +34,9 @@ def api_root():
 def scrape_reddit_news_route():
     return scrape_reddit_news()
 
-@core_bp.route("/ingest/redditnews", methods=["POST"])
-def ingest_reddit_news_route():
-    return process_source("reddit")
-
+@core_bp.route("/ingest/<source>", methods=["POST"])
+def ingest_generic_source_route(source: str):
+    return process_source(source)
 
 # Indexing Endpoints
 

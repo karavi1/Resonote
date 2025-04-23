@@ -139,11 +139,21 @@ curl http://localhost:5000/api/scrape/redditnews
 
 ## Ingestion + Storage Endpoints (writes to DB)
 
-### POST: Ingest and store 5 articles from Reddit
-curl -X POST http://localhost:5000/api/ingest/redditnews
+# Ingest from Reddit (default: r/news)
+curl -X POST http://localhost:5000/api/ingest/reddit
 
-### Optional: Add parameters (e.g., max_count and headless mode)
-curl -X POST "http://localhost:5000/api/ingest/redditnews?max_count=10&headless=false"
+# Ingest from r/technology
+curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=technology"
+
+# Ingest from r/health
+curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=health"
+
+# Ingest from r/worldnews with 10 articles
+curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=worldnews&max_count=10"
+
+# Ingest from r/science with headless scraping disabled (if used internally)
+curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=science&headless=false"
+
 
 ---
 

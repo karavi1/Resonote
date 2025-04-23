@@ -1,7 +1,9 @@
 from flask import Flask
 from app.routes.core_routes import core_bp
+from dotenv import load_dotenv
 
 def create_app():
+    load_dotenv()
     app = Flask(__name__)
     app.config.from_pyfile("config.py")
 

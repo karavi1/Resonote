@@ -1,9 +1,6 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-
-load_dotenv()  # Load variables from .env
 
 # Build the DATABASE_URL from parts
 user = os.getenv("DATABASE_USER")

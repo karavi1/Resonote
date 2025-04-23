@@ -11,7 +11,7 @@ SCRAPER_CLASSES = {
     "reddit": RedditScraper
 }
 
-def scrape_from_source(source: str, max_count=5, headless=True) -> list[dict]:
+def scrape_from_source(source: str, max_count=5, headless=True, **params) -> list[dict]:
     """
     Pull/scrape articles from the given source using its scraper.
     Returns a list of dicts: title, url, author, tags, source, timestamp
@@ -20,7 +20,7 @@ def scrape_from_source(source: str, max_count=5, headless=True) -> list[dict]:
         raise ValueError(f"Unknown source: {source}")
     
     scraper_class = SCRAPER_CLASSES[source]
-    scraper = scraper_class(headless=headless)
+    scraper = scraper_class(max_count=max_count, headless=headless, **params)
 
     try:
         return scraper.ingest(max_count=max_count)
@@ -34,7 +34,6 @@ def scrape_reddit_news():
         return jsonify(results)
     finally:
         scraper.close()
-
 
 
 ### CURATION/STORAGE
@@ -90,8 +89,16 @@ def store_curated_document(doc: dict):
 def process_source(source: str):
     max_count = request.args.get("max_count", default=5, type=int)
     headless = request.args.get("headless", default=True, type=lambda v: v.lower() != "false")
+    params = dict(request.args)
+    params.pop("max_count", None)
+    params.pop("headless", None)
 
-    articles = scrape_from_source(source, max_count=max_count, headless=headless)
+    articles = scrape_from_source(
+        source,
+        max_count=max_count,
+        headless=headless,
+        **params
+    )
     db = SessionLocal()
     curated_docs = []
 
