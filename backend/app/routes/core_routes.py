@@ -1,4 +1,4 @@
-from app.services.ingestion.service import ingest_reuters, ingest_reddit_news
+from app.services.ingestion.service import scrape_reddit_news, process_source
 from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite
 from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection
 from flask import Blueprint, current_app, jsonify, request
@@ -28,15 +28,15 @@ def api_root():
     })
 
 
-# Ingestion Endpoints
+# Scraping, Ingestion and Storage Endpoints
 
-@core_bp.route("/ingest/reuters", methods=["GET"])
-def ingest_reuters_route():
-    return ingest_reuters()
+@core_bp.route("/scrape/redditnews", methods=["GET"])
+def scrape_reddit_news_route():
+    return scrape_reddit_news()
 
-@core_bp.route("/ingest/reddit", methods=["GET"])
+@core_bp.route("/ingest/redditnews", methods=["POST"])
 def ingest_reddit_news_route():
-    return ingest_reddit_news()
+    return process_source("reddit")
 
 
 # Indexing Endpoints

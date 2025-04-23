@@ -118,66 +118,88 @@ Visit: http://localhost:5173
 
 Example curl commands:
 ```bash
+# Resonote API — Usage Examples
 
+## General
 
-### GETs ###
-
-# GET: Welcome message with list of available endpoints
-curl http://localhost:5000/api/
-
-# GET: Hello World check
+### GET: Hello World check (routing test)
 curl http://localhost:5000/api/hello
 
-# GET: Ingest 5 articles from Reuters
-curl http://localhost:5000/api/ingest/reuters
+### GET: Welcome message with list of available endpoints
+curl http://localhost:5000/api/
 
-# GET: Ingest 5 trending articles from Reddit
-curl http://localhost:5000/api/ingest/reddit
+---
 
-# GET: Fetch the latest 10 articles (default limit)
+## Scraping Endpoints (No DB write)
+
+### GET: Scrape 5 trending articles from Reddit (no DB storage)
+curl http://localhost:5000/api/scrape/redditnews
+
+---
+
+## Ingestion + Storage Endpoints (writes to DB)
+
+### POST: Ingest and store 5 articles from Reddit
+curl -X POST http://localhost:5000/api/ingest/redditnews
+
+### Optional: Add parameters (e.g., max_count and headless mode)
+curl -X POST "http://localhost:5000/api/ingest/redditnews?max_count=10&headless=false"
+
+---
+
+## Article Indexing
+
+### GET: Fetch the latest 10 articles (default limit)
 curl http://localhost:5000/api/articles
 
-# GET: Filter articles by source
+### GET: Filter articles by source
 curl "http://localhost:5000/api/articles?source=Reuters"
 
-# GET: Filter articles by reading status
+### GET: Filter articles by reading status
 curl "http://localhost:5000/api/articles?status=unread"
 
-# GET: Filter articles by favorite status (true/false)
+### GET: Filter articles by favorite status
 curl "http://localhost:5000/api/articles?favorite=true"
 
-# GET: Filter articles by tag substring (case-insensitive match)
+### GET: Filter articles by tag substring (case-insensitive match)
 curl "http://localhost:5000/api/articles?tag=lifestyle"
 
-# GET: Pagination — fetch next set of results
+### GET: Pagination — fetch next set of results
 curl "http://localhost:5000/api/articles?limit=5&offset=5"
 
-# GET: Get a list of all tags with frequency counts
+---
+
+## Tag Analytics
+
+### GET: Get a list of all tags with frequency counts
 curl http://localhost:5000/api/tags
 
-# GET: Get reflection for a specific article
+---
+
+## Reflection System
+
+### GET: Get reflection for a specific article
 curl http://localhost:5000/api/reflect/fetch/2
 
-
-
-### POSTs ###
-
-# POST: Mark an article as "read"
-curl -X POST http://localhost:5000/api/articles/1/mark-read
-
-# POST: Toggle an article's favorite status
-curl -X POST http://localhost:5000/api/articles/1/favorite
-
-# POST: Make a reflection for an article
+### POST: Make a new reflection for an article
 curl -X POST http://localhost:5000/api/reflect/make/2 \
   -H "Content-Type: application/json" \
   -d '{"content": "This article made me rethink my assumptions about a subject."}'
 
-# POST: Update reflection for an article
+### POST: Update existing reflection for an article
 curl -X POST http://localhost:5000/api/reflect/update/2 \
   -H "Content-Type: application/json" \
   -d '{"content": "Updated reflection — even more convinced about the implications now."}'
 
+---
+
+## Article Status Updates
+
+### POST: Mark an article as "read"
+curl -X POST http://localhost:5000/api/articles/1/mark-read
+
+### POST: Toggle an article's favorite status
+curl -X POST http://localhost:5000/api/articles/1/favorite
 
 
 ```

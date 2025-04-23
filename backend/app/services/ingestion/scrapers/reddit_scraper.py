@@ -7,7 +7,7 @@ class RedditScraper(BaseScraper):
     def __init__(self, subreddit="news", max_count=5, headless=True):
         self.subreddit = subreddit
         self.max_count = max_count
-        self.driver = None  # Not used
+        self.driver = None
 
     def fetch_headlines(self, max_count=None):
         count = max_count or self.max_count
@@ -24,12 +24,11 @@ class RedditScraper(BaseScraper):
 
             external_url = data.get("url_overridden_by_dest")
             if not external_url or "reddit.com" in external_url:
-                continue  # Skip self posts or Reddit-hosted content
+                continue
 
             title = data["title"]
             author = data["author"]
 
-            # Derive tags from external URL path
             path_parts = urlparse(external_url).path.strip("/").split("/")
             tags = [p for p in path_parts if p and len(p) < 20]
 
@@ -37,7 +36,7 @@ class RedditScraper(BaseScraper):
                 "title": title,
                 "url": external_url,
                 "author": author,
-                "tags": tags[:5]  # Limit to 5 tags
+                "tags": tags[:5]
             })
 
         return results

@@ -1,15 +1,19 @@
-from app.services.ingestion.scrapers.reuters_scraper import ReutersScraper
+from app.db.session import SessionLocal
+from app.db.crud import save_curated_article
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
-from flask import jsonify
+from flask import jsonify, request
+from urllib.parse import urlparse
+import re
+
+### INGESTION
 
 SCRAPER_CLASSES = {
-    "reuters": ReutersScraper,
-    "reddit": RedditScraper,
+    "reddit": RedditScraper
 }
 
-def ingest_from_source(source: str, max_count=5, headless=True) -> list[dict]:
+def scrape_from_source(source: str, max_count=5, headless=True) -> list[dict]:
     """
-    Ingest articles from the given source using its scraper.
+    Pull/scrape articles from the given source using its scraper.
     Returns a list of dicts: title, url, author, tags, source, timestamp
     """
     if source not in SCRAPER_CLASSES:
@@ -23,18 +27,102 @@ def ingest_from_source(source: str, max_count=5, headless=True) -> list[dict]:
     finally:
         scraper.close()
 
-def ingest_reuters():
-    scraper = ReutersScraper(headless=True)
-    try:
-        results = scraper.ingest(max_count=5)
-        return jsonify(results)
-    finally:
-        scraper.close()
-
-def ingest_reddit_news():
+def scrape_reddit_news():
     scraper = RedditScraper(headless=True)
     try:
         results = scraper.ingest(max_count=5)
         return jsonify(results)
     finally:
         scraper.close()
+
+
+
+### CURATION/STORAGE
+
+def extract_metadata(source_url: str, title: str = None) -> dict:
+    """
+    Extract metadata from a URL and optional title. No content parsing.
+    """
+    parsed = urlparse(source_url)
+    path_parts = [part for part in parsed.path.strip("/").split("/") if part]
+
+    # Use provided title or generate from URL
+    fallback_title = re.sub(r"[-_/]+", " ", path_parts[-1]).title() if path_parts else parsed.netloc
+    final_title = title or fallback_title
+
+    # Basic tag extraction from URL path
+    tags = [part.lower() for part in path_parts if part.isalpha() and len(part) > 2]
+
+    return {
+        "title": final_title,
+        "author": None,
+        "estimated_reading_time_min": 3,  # Default value
+        "tags": tags[:5],
+        "source_url": source_url,
+    }
+
+def curate_document(source_url: str, title: str = None, author: str = None, source: str = "unknown", db=None) -> dict:
+    metadata = extract_metadata(source_url=source_url, title=title)
+
+    if author:
+        metadata["author"] = author
+
+    curated = {
+        "metadata": {
+            **metadata,
+            "reading_status": "unread",
+            "source": source
+        }
+    }
+    if db:
+        save_curated_article(db, curated)
+    return curated
+
+
+def store_curated_document(doc: dict):
+    db = SessionLocal()
+    try:
+        save_curated_article(db, doc)
+        print(f"[DB] Stored: {doc['metadata']['title']}")
+    finally:
+        db.close()
+
+def process_source(source: str):
+    max_count = request.args.get("max_count", default=5, type=int)
+    headless = request.args.get("headless", default=True, type=lambda v: v.lower() != "false")
+
+    articles = scrape_from_source(source, max_count=max_count, headless=headless)
+    db = SessionLocal()
+    curated_docs = []
+
+    try:
+        for i, a in enumerate(articles):
+            print(f"\nA. Article {i+1}: {a['title']}")
+
+            curated = curate_document(
+                source_url=a["url"],
+                title=a["title"],
+                author=a.get("author"),
+                source=a["source"],
+                db=db
+            )
+
+            if not curated:
+                print("⚠️ Skipped (missing metadata)")
+                continue
+
+            curated_docs.append(curated["metadata"])
+
+            print("\nB. Metadata:")
+            for k, v in curated["metadata"].items():
+                print(f"{k}: {v}")
+
+    finally:
+        db.close()
+
+    return jsonify({
+        "status": "success",
+        "source": source,
+        "ingested": len(curated_docs),
+        "curated": curated_docs,
+    })
