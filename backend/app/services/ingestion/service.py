@@ -1,5 +1,6 @@
 from app.db.session import SessionLocal
 from app.db.crud import save_curated_article
+from app.services.ingestion.scrapers.guardian_scraper import GuardianScraper
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
 from flask import jsonify, request
 from urllib.parse import urlparse
@@ -8,7 +9,8 @@ import re
 ### INGESTION
 
 SCRAPER_CLASSES = {
-    "reddit": RedditScraper
+    "reddit": RedditScraper,
+    "guardian": GuardianScraper
 }
 
 def scrape_from_source(source: str, max_count=5, headless=True, **params) -> list[dict]:
@@ -26,15 +28,6 @@ def scrape_from_source(source: str, max_count=5, headless=True, **params) -> lis
         return scraper.ingest(max_count=max_count)
     finally:
         scraper.close()
-
-def scrape_reddit_news():
-    scraper = RedditScraper(headless=True)
-    try:
-        results = scraper.ingest(max_count=5)
-        return jsonify(results)
-    finally:
-        scraper.close()
-
 
 ### CURATION/STORAGE
 

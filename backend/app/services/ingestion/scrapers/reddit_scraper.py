@@ -2,6 +2,7 @@ import praw, os
 from .base_scraper import BaseScraper
 from urllib.parse import urlparse
 
+# Docs: https://praw.readthedocs.io/en/stable/
 class RedditScraper(BaseScraper):
     def __init__(self, subreddit="news", max_count=5, headless=True, **kwargs):
         self.subreddit = subreddit

@@ -130,13 +130,6 @@ curl http://localhost:5000/api/
 
 ---
 
-## Scraping Endpoints (No DB write)
-
-### GET: Scrape 5 trending articles from Reddit (no DB storage)
-curl http://localhost:5000/api/scrape/redditnews
-
----
-
 ## Ingestion + Storage Endpoints (writes to DB)
 
 # Ingest from Reddit (default: r/news)
@@ -153,6 +146,15 @@ curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=worldnews&max_co
 
 # Ingest from r/science with headless scraping disabled (if used internally)
 curl -X POST "http://localhost:5000/api/ingest/reddit?subreddit=science&headless=false"
+
+# Ingest from The Guardian -- Default: section=news
+curl -X POST http://localhost:5000/api/ingest/guardian
+
+# Specific section and query
+curl -X POST "http://localhost:5000/api/ingest/guardian?section=technology"
+
+# Increase max_count
+curl -X POST "http://localhost:5000/api/ingest/guardian?section=world&max_count=10"
 
 
 ---

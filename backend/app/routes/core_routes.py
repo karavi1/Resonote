@@ -1,4 +1,4 @@
-from app.services.ingestion.service import scrape_reddit_news, process_source
+from app.services.ingestion.service import process_source
 from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite
 from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection
 from flask import Blueprint, current_app, jsonify, request
@@ -29,10 +29,6 @@ def api_root():
 
 
 # Scraping, Ingestion and Storage Endpoints
-
-@core_bp.route("/scrape/redditnews", methods=["GET"])
-def scrape_reddit_news_route():
-    return scrape_reddit_news()
 
 @core_bp.route("/ingest/<source>", methods=["POST"])
 def ingest_generic_source_route(source: str):
