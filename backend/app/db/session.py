@@ -1,8 +1,10 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# Build the DATABASE_URL from parts
+load_dotenv()
+
 user = os.getenv("DATABASE_USER")
 password = os.getenv("DATABASE_PASSWORD")
 host = os.getenv("DATABASE_HOST")

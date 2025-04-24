@@ -2,6 +2,7 @@ from sqlalchemy import String, Integer, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timezone
+from typing import Optional
 
 Base = declarative_base()
 
@@ -20,7 +21,12 @@ class CuratedArticle(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     favorite: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    reflections: Mapped[list["Reflection"]] = relationship("Reflection", back_populates="article")
+    reflection: Mapped[Optional["Reflection"]] = relationship(
+        "Reflection",
+        back_populates="article",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
 
 
 class Reflection(Base):
@@ -32,4 +38,4 @@ class Reflection(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
-    article: Mapped["CuratedArticle"] = relationship("CuratedArticle", back_populates="reflections")
+    article: Mapped["CuratedArticle"] = relationship("CuratedArticle", back_populates="reflection")

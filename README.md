@@ -161,7 +161,7 @@ curl -X POST "http://localhost:5000/api/ingest/guardian?section=world&max_count=
 
 ## Article Indexing
 
-### GET: Fetch the latest 10 articles (default limit)
+### GET: Fetch the latest 25 articles (default limit)
 curl http://localhost:5000/api/articles
 
 ### GET: Filter articles by source

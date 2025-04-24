@@ -8,17 +8,14 @@ def list_articles(request_args):
     try:
         query = db.query(CuratedArticle)
 
-        # Filter: source
         source = request_args.get("source")
         if source:
             query = query.filter(CuratedArticle.source == source)
 
-        # Filter: reading_status
         status = request_args.get("status")
         if status:
             query = query.filter(CuratedArticle.reading_status == status)
 
-        # Filter: favorite (true/false)
         favorite = request_args.get("favorite")
         if favorite is not None:
             if favorite.lower() in ["true", "1"]:
@@ -26,28 +23,29 @@ def list_articles(request_args):
             elif favorite.lower() in ["false", "0"]:
                 query = query.filter(CuratedArticle.favorite.is_(False))
 
-        # Filter: tag contains
         tag = request_args.get("tag")
         if tag:
             query = query.filter(CuratedArticle.tags.like(f"%{tag}%"))
 
-        # Sorting and pagination
         query = query.order_by(CuratedArticle.timestamp.desc())
-        limit = int(request_args.get("limit", 10))
+        limit = int(request_args.get("limit", 25))
         offset = int(request_args.get("offset", 0))
         articles = query.offset(offset).limit(limit).all()
 
         return jsonify([
             {
-                "id": a.id,
-                "title": a.title,
-                "url": a.url,
-                "source": a.source,
-                "reading_status": a.reading_status,
-                "tags": a.tags,
-                "favorite": a.favorite,
-                "timestamp": a.timestamp.isoformat()
-            } for a in articles
+                "id": article.id,
+                "title": article.title,
+                "url": article.url,
+                "source": article.source,
+                "reading_status": article.reading_status,
+                "tags": article.tags,
+                "favorite": article.favorite,
+                "timestamp": article.timestamp.isoformat(),
+                "reflection": article.reflection,
+                "estimated_reading_time": article.estimated_reading_time_min,
+                "reflection": article.reflection.content if article.reflection else None
+            } for article in articles
         ])
     finally:
         db.close()
