@@ -1,6 +1,7 @@
 from app.db.models import CuratedArticle, Reflection
 from app.db.session import SessionLocal
 from flask import jsonify
+from sqlalchemy.orm import joinedload
 
 def make_reflection(data, article_id):
     db = SessionLocal()
@@ -9,15 +10,16 @@ def make_reflection(data, article_id):
             return jsonify({"error": "Missing reflection content"}), 400
 
         content = data["content"]
-
-        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        article = db.query(CuratedArticle).options(joinedload(CuratedArticle.reflection)).filter(CuratedArticle.id == article_id).first()
         if not article:
             return jsonify({"error": "Article not found"}), 404
 
-        reflection = Reflection(
-            article_id=article_id,
-            content=content
-        )
+        if article.reflection:
+            db.delete(article.reflection)
+            db.flush()
+
+        reflection = Reflection(article_id=article_id, content=content)
+        article.reflection = reflection
 
         db.add(reflection)
         db.commit()
@@ -28,8 +30,10 @@ def make_reflection(data, article_id):
             "reflection_id": reflection.id,
             "article_title": article.title
         }), 201
+
     finally:
         db.close()
+
 
 def fetch_reflection(article_id):
     db = SessionLocal()
@@ -77,3 +81,7 @@ def update_reflection(data, article_id):
         }), 201
     finally:
         db.close()
+
+
+def delete_reflection(article_id):
+    return

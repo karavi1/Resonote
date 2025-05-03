@@ -2,11 +2,12 @@ from app.db.models import CuratedArticle
 from app.db.session import SessionLocal
 from collections import Counter
 from flask import jsonify
+from sqlalchemy.orm import joinedload
 
 def list_articles(request_args):
     db = SessionLocal()
     try:
-        query = db.query(CuratedArticle)
+        query = db.query(CuratedArticle).options(joinedload(CuratedArticle.reflection))
 
         source = request_args.get("source")
         if source:
@@ -44,7 +45,10 @@ def list_articles(request_args):
                 "timestamp": article.timestamp.isoformat(),
                 "reflection": article.reflection,
                 "estimated_reading_time": article.estimated_reading_time_min,
-                "reflection": article.reflection.content if article.reflection else None
+                "reflection": {
+                    "id": article.reflection.id,
+                    "content": article.reflection.content
+                } if article.reflection else None
             } for article in articles
         ])
     finally:
