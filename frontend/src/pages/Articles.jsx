@@ -72,17 +72,17 @@ function ArticleTable({ title, articles }) {
         <table className="w-full table-auto border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border px-4 py-2">Title</th>
-              <th className="border px-4 py-2">Source</th>
-              <th className="border px-4 py-2">Tags</th>
-              <th className="border px-4 py-2">Date</th>
-              <th className="border px-4 py-2">Reflection</th>
+              <th className="border px-4 py-2 align-top">Title</th>
+              <th className="border px-4 py-2 align-top">Source</th>
+              <th className="border px-4 py-2 align-top">Tags</th>
+              <th className="border px-4 py-2 align-top">Date</th>
+              <th className="border px-4 py-2 align-top">Reflection</th>
             </tr>
           </thead>
           <tbody>
             {articles.map((a) => (
               <tr key={a.id}>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 align-top">
                   <a
                     href={a.url}
                     target="_blank"
@@ -92,18 +92,18 @@ function ArticleTable({ title, articles }) {
                     {a.title}
                   </a>
                 </td>
-                <td className="border px-4 py-2">{a.source}</td>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 align-top">{a.source}</td>
+                <td className="border px-4 py-2 align-top">
                   {Array.isArray(a.tags) ? a.tags.slice(0, 3).join(', ') : '—'}
                 </td>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 align-top">
                   {new Date(a.timestamp).toLocaleDateString()}
                 </td>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 align-top">
                   {a.reflection && a.reflection.content ? (
                     <div className="text-sm text-gray-700">{a.reflection.content}</div>
                   ) : (
-                    <span className="text-gray-500 italic">No reflection</span>
+                    <ReflectionInput articleId={a.id} onSaved={() => window.location.reload()} />
                   )}
                 </td>
               </tr>
@@ -111,6 +111,56 @@ function ArticleTable({ title, articles }) {
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+function ReflectionInput({ articleId, onSaved }) {
+  const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    if (!content.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/reflect/make/${articleId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save reflection");
+      onSaved?.();
+    } catch (err) {
+      setError("Error saving reflection.");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="border rounded-md p-2 shadow-sm bg-gray-50">
+      <textarea
+        rows="3"
+        className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Write your reflection..."
+      />
+      <div className="flex justify-between items-center">
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+        >
+          {submitting ? "Saving..." : "Save"}
+        </button>
+        {error && <span className="text-red-500 text-xs">{error}</span>}
+      </div>
     </div>
   );
 }

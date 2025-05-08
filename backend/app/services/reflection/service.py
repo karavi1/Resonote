@@ -8,32 +8,25 @@ def make_reflection(data, article_id):
     try:
         if not data or "content" not in data:
             return jsonify({"error": "Missing reflection content"}), 400
-
         content = data["content"]
         article = db.query(CuratedArticle).options(joinedload(CuratedArticle.reflection)).filter(CuratedArticle.id == article_id).first()
         if not article:
             return jsonify({"error": "Article not found"}), 404
-
         if article.reflection:
             db.delete(article.reflection)
             db.flush()
-
         reflection = Reflection(article_id=article_id, content=content)
         article.reflection = reflection
-
         db.add(reflection)
         db.commit()
         db.refresh(reflection)
-
         return jsonify({
             "message": "Reflection saved",
             "reflection_id": reflection.id,
             "article_title": article.title
         }), 201
-
     finally:
         db.close()
-
 
 def fetch_reflection(article_id):
     db = SessionLocal()
@@ -66,10 +59,7 @@ def update_reflection(data, article_id):
             db.delete(existing_reflection)
             db.commit()
 
-        new_reflection = Reflection(
-            article_id=article_id,
-            content=content
-        )
+        new_reflection = Reflection(article_id=article_id, content=content)
         db.add(new_reflection)
         db.commit()
         db.refresh(new_reflection)
@@ -82,6 +72,18 @@ def update_reflection(data, article_id):
     finally:
         db.close()
 
-
 def delete_reflection(article_id):
-    return
+    db = SessionLocal()
+    try:
+        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+        article.reflection = None
+        db.add(article)
+        db.commit()
+        db.refresh(article)
+        return jsonify({
+            "message": "Reflection deleted"
+        }), 200
+    finally:
+        db.close()

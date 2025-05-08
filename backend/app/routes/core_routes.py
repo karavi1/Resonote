@@ -1,6 +1,6 @@
 from app.services.ingestion.service import process_source
 from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite
-from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection
+from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection, delete_reflection
 from flask import Blueprint, current_app, jsonify, request
 
 core_bp = Blueprint("core", __name__)
@@ -15,18 +15,15 @@ def hello():
 def api_root():
     endpoints = []
     for rule in current_app.url_map.iter_rules():
-        # Filter to show only routes under "/api" and skip static files
         if rule.rule.startswith("/api") and "static" not in rule.endpoint:
             endpoints.append({
                 "path": rule.rule,
                 "methods": list(rule.methods - {"HEAD", "OPTIONS"})
             })
-
     return jsonify({
         "message": "Welcome to the Resonote API!",
         "endpoints": endpoints
     })
-
 
 # Scraping, Ingestion and Storage Endpoints
 
@@ -66,3 +63,7 @@ def fetch_reflection_route(article_id):
 @core_bp.route("/reflect/update/<int:article_id>", methods=["POST"])
 def update_reflection_route(article_id):
     return update_reflection(request.get_json(), article_id)
+
+@core_bp.route("/reflect/delete/<int:article_id>", methods=["DELETE"])
+def delete_reflection_route(article_id):
+    return delete_reflection(article_id)
