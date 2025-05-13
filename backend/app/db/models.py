@@ -2,7 +2,7 @@ from sqlalchemy import String, Integer, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional
 
 Base = declarative_base()
 
@@ -15,7 +15,7 @@ class CuratedArticle(Base):
     url: Mapped[str] = mapped_column(Text)
     url_hash: Mapped[str] = mapped_column(String(64), unique=True)
     source: Mapped[str] = mapped_column(String(100))
-    tags: Mapped[List[str]] = mapped_column(List(String(512)))
+    tags: Mapped[str] = mapped_column(String(512))
     estimated_reading_time_min: Mapped[int] = mapped_column(Integer)
     reading_status: Mapped[str] = mapped_column(String(50), default="unread")
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
