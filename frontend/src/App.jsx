@@ -25,7 +25,6 @@ export default function App() {
   );
 }
 
-
 function Home() {
   return (
     <div className="text-center space-y-4">

@@ -1,5 +1,6 @@
 from app.db.session import SessionLocal
 from app.db.crud import save_curated_article
+from app.services.common import normalize_tag_name
 from app.services.ingestion.scrapers.guardian_scraper import GuardianScraper
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
 from flask import jsonify, request
@@ -43,7 +44,7 @@ def extract_metadata(source_url: str, title: str = None) -> dict:
     final_title = title or fallback_title
 
     # Basic tag extraction from URL path
-    tags = [part.lower() for part in path_parts if part.isalpha() and len(part) > 2]
+    tags = [normalize_tag_name(part) for part in path_parts if part.isalpha() and len(part) > 2]
 
     return {
         "title": final_title,

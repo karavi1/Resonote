@@ -1,10 +1,10 @@
-from app.services.ingestion.scrapers.reuters_scraper import ReutersScraper
+from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
 import json
 
 def run():
-    scraper = ReutersScraper(headless=True)
+    scraper = RedditScraper(headless=True)
     try:
-        print("\n🔍 Running Reuters Ingestion...\n")
+        print("\n🔍 Running Reddit Ingestion...\n")
         results = scraper.ingest(max_count=5)
 
         for i, article in enumerate(results):
@@ -15,7 +15,7 @@ def run():
             print(f"Source: {article['source']}")
             print(f"Timestamp: {article['timestamp']}")
 
-        with open("reuters_output.json", "w") as f:
+        with open("reddit_output.json", "w") as f:
             json.dump(results, f, indent=2)
 
     finally:

@@ -1,8 +1,9 @@
-from app.db.models import CuratedArticle
+from app.db.models import CuratedArticle, Tag
 from app.db.session import SessionLocal
 from collections import Counter
 from flask import jsonify
 from sqlalchemy.orm import joinedload
+from app.services.common import normalize_tag_name
 
 def list_articles(request_args):
     db = SessionLocal()
@@ -26,7 +27,8 @@ def list_articles(request_args):
 
         tag = request_args.get("tag")
         if tag:
-            query = query.filter(CuratedArticle.tags.like(f"%{tag}%"))
+            query = query.filter(CuratedArticle.tags.any(Tag.name == normalize_tag_name(tag)))
+
 
         query = query.order_by(CuratedArticle.timestamp.desc())
         limit = int(request_args.get("limit", 25))
@@ -40,7 +42,7 @@ def list_articles(request_args):
                 "url": article.url,
                 "source": article.source,
                 "reading_status": article.reading_status,
-                "tags": article.tags,
+                "tags": [tag.name for tag in article.tags],
                 "favorite": article.favorite,
                 "timestamp": article.timestamp.isoformat(),
                 "reflection": article.reflection,
@@ -57,20 +59,15 @@ def list_articles(request_args):
 def get_all_tags():
     db = SessionLocal()
     try:
-        all_tags = []
-        articles = db.query(CuratedArticle).all()
-        for article in articles:
-            if article.tags:
-                all_tags.extend([tag.strip().lower() for tag in article.tags.split(",") if tag.strip()])
-
-        tag_counts = Counter(all_tags)
-
-        return jsonify([
-            { "tag": tag, "count": count }
-            for tag, count in sorted(tag_counts.items(), key=lambda x: -x[1])
-        ])
+        tags = db.query(Tag).all()
+        tag_counts = [
+            { "tag": tag.name, "count": len(tag.articles) }
+            for tag in sorted(tags, key=lambda t: -len(t.articles))
+        ]
+        return jsonify(tag_counts)
     finally:
         db.close()
+
 
 def mark_as_read(article_id):
     db = SessionLocal()
