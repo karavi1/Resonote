@@ -1,6 +1,5 @@
 from sqlalchemy import String, Integer, DateTime, Text, Boolean, ForeignKey, Table, Column
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
 from datetime import datetime, timezone
 from typing import Optional, List
 
