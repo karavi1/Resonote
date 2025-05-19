@@ -24,6 +24,4 @@ python-dotenv
 flask
 dotenv
 praw
-react-force-graph
-react-force-graph-2d
 flask_cors
