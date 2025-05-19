@@ -5,8 +5,8 @@ from flask import jsonify
 from sqlalchemy.orm import joinedload
 from app.services.common import normalize_tag_name
 
-def list_articles(request_args):
-    db = SessionLocal()
+def list_articles(request_args, db=None):
+    db = db or SessionLocal()
     try:
         query = db.query(CuratedArticle).options(joinedload(CuratedArticle.reflection))
 
@@ -29,7 +29,6 @@ def list_articles(request_args):
         if tag:
             query = query.filter(CuratedArticle.tags.any(Tag.name == normalize_tag_name(tag)))
 
-
         query = query.order_by(CuratedArticle.timestamp.desc())
         limit = int(request_args.get("limit", 25))
         offset = int(request_args.get("offset", 0))
@@ -45,7 +44,6 @@ def list_articles(request_args):
                 "tags": [tag.name for tag in article.tags],
                 "favorite": article.favorite,
                 "timestamp": article.timestamp.isoformat(),
-                "reflection": article.reflection,
                 "estimated_reading_time": article.estimated_reading_time_min,
                 "reflection": {
                     "id": article.reflection.id,
@@ -56,8 +54,8 @@ def list_articles(request_args):
     finally:
         db.close()
 
-def get_all_tags():
-    db = SessionLocal()
+def get_all_tags(db=None):
+    db = db or SessionLocal()
     try:
         tags = db.query(Tag).all()
         tag_counts = [
@@ -68,11 +66,10 @@ def get_all_tags():
     finally:
         db.close()
 
-
-def mark_as_read(article_id):
-    db = SessionLocal()
+def mark_as_read(article_id, db=None):
+    db = db or SessionLocal()
     try:
-        article = db.query(CuratedArticle).get(article_id)
+        article = db.get(CuratedArticle, article_id)
         if not article:
             return jsonify({"error": "Article not found"}), 404
 
@@ -83,8 +80,8 @@ def mark_as_read(article_id):
     finally:
         db.close()
 
-def toggle_favorite(article_id):
-    db = SessionLocal()
+def toggle_favorite(article_id, db=None):
+    db = db or SessionLocal()
     try:
         article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
         if not article:

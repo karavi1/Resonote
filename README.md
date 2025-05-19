@@ -100,6 +100,8 @@ python3 run.py
 
 Visit: http://localhost:5000/api
 
+Run tests: `PYTHONPATH=backend pytest -v`
+
 ---
 
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
@@ -39,7 +39,7 @@ class BaseScraper(ABC):
                 "author": a.get("author"),
                 "tags": a.get("tags", []),
                 "source": self.__class__.__name__.replace("Scraper", "").lower(),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
         return output
 

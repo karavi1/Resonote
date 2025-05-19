@@ -1,9 +1,8 @@
+from app.db.base import Base
 from sqlalchemy import String, Integer, DateTime, Text, Boolean, ForeignKey, Table, Column
-from sqlalchemy.orm import Mapped, mapped_column, relationship, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from typing import Optional, List
-
-Base = declarative_base()
 
 article_tag_association = Table(
     "article_tag_association",
@@ -14,6 +13,7 @@ article_tag_association = Table(
 
 class Tag(Base):
     __tablename__ = "tags"
+    __allow_unmapped__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(64), unique=True, index=True)
@@ -26,6 +26,7 @@ class Tag(Base):
 
 class CuratedArticle(Base):
     __tablename__ = "curated_articles"
+    __allow_unmapped__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(512))
@@ -54,6 +55,7 @@ class CuratedArticle(Base):
 
 class Reflection(Base):
     __tablename__ = "reflections"
+    __allow_unmapped__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     article_id: Mapped[int] = mapped_column(ForeignKey("curated_articles.id"), unique=True)
