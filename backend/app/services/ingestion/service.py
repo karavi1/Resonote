@@ -3,6 +3,7 @@ from app.db.crud import save_curated_article
 from app.services.common import normalize_tag_name
 from app.services.ingestion.scrapers.guardian_scraper import GuardianScraper
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
+from app.schemas.article import CuratedArticleRead
 from flask import jsonify, request
 from urllib.parse import urlparse
 import re
@@ -112,10 +113,11 @@ def process_source(source: str):
                 print("⚠️ Skipped (missing metadata)")
                 continue
 
-            curated_docs.append(curated["metadata"])
+            validated = CuratedArticleRead.model_validate(curated["metadata"])
+            curated_docs.append(validated.model_dump())
 
             print("\nB. Metadata:")
-            for k, v in curated["metadata"].items():
+            for k, v in validated.model_dump().items():
                 print(f"{k}: {v}")
 
     finally:

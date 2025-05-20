@@ -80,9 +80,17 @@ def test_process_source_success(mock_curate, mock_scrape):
     ]
     mock_curate.return_value = {
         "metadata": {
+            "id": 1,
             "title": "Example",
+            "author": "Author A",
+            "url": "https://example.com",
+            "url_hash": "abc123",
             "source": "reddit",
-            "source_url": "https://example.com"
+            "estimated_reading_time_min": 3,
+            "reading_status": "unread",
+            "timestamp": "2025-05-19T12:00:00Z",
+            "tags": [],
+            "favorite": False
         }
     }
 
@@ -91,7 +99,13 @@ def test_process_source_success(mock_curate, mock_scrape):
         response = ingestion_service.process_source("reddit")
         data = response.get_json()
 
+    from app.schemas.article import CuratedArticleRead
+    from dateutil.parser import parse as parse_date
+
+    data["curated"][0]["timestamp"] = parse_date(data["curated"][0]["timestamp"])
+    article = CuratedArticleRead.model_validate(data["curated"][0])
+
     assert data["status"] == "success"
     assert data["source"] == "reddit"
     assert data["ingested"] == 1
-    assert data["curated"][0]["title"] == "Example"
+    assert article.title == "Example"

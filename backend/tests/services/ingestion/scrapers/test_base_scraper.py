@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 from app.services.ingestion.scrapers.base_scraper import BaseScraper
+from dateutil.parser import isoparse
+from app.schemas.scraper import ScrapedArticle
 
 class DummyScraper(BaseScraper):
     def __init__(self):
@@ -18,10 +20,12 @@ def test_ingest_metadata_structure():
     result = scraper.ingest(max_count=2)
 
     assert len(result) == 2
-    assert result[0]["title"] == "Article 1"
-    assert result[0]["source"] == "dummy"  # from DummyScraper
-    assert "timestamp" in result[0]
-    assert result[1]["tags"] == []  # default fallback
+    validated = [ScrapedArticle.model_validate(article) for article in result]
+    
+    assert validated[0].title == "Article 1"
+    assert validated[0].source == "dummy"
+    assert validated[1].tags == []
+
     scraper.close()
 
 def test_close_driver(monkeypatch):
@@ -34,4 +38,16 @@ def test_ingest_timestamp_utc():
     scraper = DummyScraper()
     result = scraper.ingest(max_count=1)
     ts = result[0]["timestamp"]
-    assert ts.endswith("+00:00")
+
+    assert isinstance(ts, datetime)
+    assert ts.tzinfo is not None
+    assert ts.utcoffset().total_seconds() == 0
+
+def test_scraped_article_timestamp_is_datetime():
+    article = ScrapedArticle.model_validate({
+        "title": "Test",
+        "url": "http://example.com",
+        "source": "reddit",
+        "timestamp": datetime.now(timezone.utc)
+    })
+    assert isinstance(article.timestamp, datetime)

@@ -26,3 +26,4 @@ dotenv
 praw
 flask_cors
 pydantic
+python-dateutil

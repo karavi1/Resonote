@@ -12,3 +12,7 @@ class TagRead(TagBase):
     model_config = {
         "from_attributes": True
     }
+
+class TagCount(BaseModel):
+    tag: str
+    count: int

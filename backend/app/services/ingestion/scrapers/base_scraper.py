@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from app.schemas.scraper import ScrapedArticle
 
 class BaseScraper(ABC):
     def __init__(self, headless=True):
@@ -21,8 +22,8 @@ class BaseScraper(ABC):
 
     def ingest(self, max_count=5):
         """
-        Return a structured list of ingested metadata for downstream use.
-        Each article should include:
+        Return a structured list of validated article metadata using ScrapedArticle schema.
+        Each article includes:
         - title
         - url
         - author (optional)
@@ -30,18 +31,21 @@ class BaseScraper(ABC):
         - source
         - timestamp
         """
-        articles = self.fetch_headlines(max_count=max_count)
-        output = []
-        for a in articles:
-            output.append({
-                "title": a.get("title"),
-                "url": a.get("url"),
-                "author": a.get("author"),
-                "tags": a.get("tags", []),
+        raw_articles = self.fetch_headlines(max_count=max_count)
+        validated = []
+
+        for article in raw_articles:
+            enriched = {
+                "title": article.get("title"),
+                "url": article.get("url"),
+                "author": article.get("author"),
+                "tags": article.get("tags", []),
                 "source": self.__class__.__name__.replace("Scraper", "").lower(),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
-        return output
+                "timestamp": datetime.now(timezone.utc)
+            }
+            validated.append(ScrapedArticle.model_validate(enriched).model_dump())
+
+        return validated
 
     def close(self):
         self.driver.quit()

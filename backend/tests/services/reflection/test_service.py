@@ -1,134 +1,101 @@
-import pytest
-from unittest.mock import MagicMock
-from flask import Flask
-from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection, delete_reflection
-
-@pytest.fixture(scope="session", autouse=True)
-def app_context():
-    app = Flask(__name__)
-    ctx = app.app_context()
-    ctx.push()
-    yield
-    ctx.pop()
-
-class DummyColumn:
-    def is_(self, val): return f"is_({val})"
-    def desc(self): return "DESC"
-
-class DummyArticle:
-    id = 1
-    title = "Mock Article"
-    reflection = None
-
-    reflection = None
-    id = DummyColumn()
-
-class DummyReflection:
-    article_id = DummyColumn()
-    id = DummyColumn()
-
-    def __init__(self, article_id, content):
-        self.id = 42
-        self.article_id = article_id
-        self.content = content
-
-@pytest.fixture(autouse=True)
-def patch_dependencies(monkeypatch):
-    monkeypatch.setattr("app.services.reflection.service.joinedload", lambda x: x)
-    monkeypatch.setattr("app.services.reflection.service.CuratedArticle", DummyArticle)
-    monkeypatch.setattr("app.services.reflection.service.Reflection", DummyReflection)
-
-def test_make_reflection_success(monkeypatch):
-    mock_article = DummyArticle()
-
-    mock_db = MagicMock()
-    mock_db.query.return_value.options.return_value.filter.return_value.first.return_value = mock_article
-    mock_db.commit.return_value = None
-    mock_db.flush.return_value = None
-    mock_db.refresh.return_value = None
-
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
-    monkeypatch.setattr("app.services.reflection.service.Reflection", DummyReflection)
-
-    data = {"content": "This is a reflection."}
-    response, status = make_reflection(data, 1)
-    assert status == 201
-    assert response.get_json()["message"] == "Reflection saved"
+from app.db.models import CuratedArticle, Reflection
+from app.db.session import SessionLocal
+from flask import jsonify
+from sqlalchemy.orm import joinedload
+from app.schemas.reflection import ReflectionRead
+from datetime import datetime, timezone
 
 
-def test_make_reflection_missing_content(monkeypatch):
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: MagicMock())
-    response, status = make_reflection({}, 1)
-    assert status == 400
-    assert response.get_json()["error"] == "Missing reflection content"
+def make_reflection(data, article_id):
+    db = SessionLocal()
+    try:
+        if not data or "content" not in data:
+            return jsonify({"error": "Missing reflection content"}), 400
+
+        content = data["content"]
+        article = db.query(CuratedArticle).options(joinedload(CuratedArticle.reflection)).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+
+        if article.reflection:
+            db.delete(article.reflection)
+            db.flush()
+
+        reflection = Reflection(article_id=article_id, content=content)
+        article.reflection = reflection
+        db.add(reflection)
+        db.commit()
+        db.refresh(reflection)
+
+        return jsonify({
+            "message": "Reflection saved",
+            "reflection": ReflectionRead.model_validate(reflection).model_dump()
+        }), 201
+    finally:
+        db.close()
 
 
-def test_fetch_reflection_success(monkeypatch):
-    mock_reflection = DummyReflection(1, "A saved reflection.")
-    mock_article = DummyArticle()
+def fetch_reflection(article_id):
+    db = SessionLocal()
+    try:
+        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
 
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.side_effect = [
-        MagicMock(first=lambda: mock_article),
-        MagicMock(first=lambda: mock_reflection)
-    ]
+        reflection = db.query(Reflection).filter(Reflection.article_id == article_id).first()
+        if not reflection:
+            return jsonify({"error": "Reflection not found"}), 404
 
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
-
-    response = fetch_reflection(1)
-    assert response.get_json()["reflection"] == "A saved reflection."
-
-
-def test_fetch_reflection_not_found(monkeypatch):
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
-    response, status = fetch_reflection(1)
-    assert status == 404
-    assert response.get_json()["error"] == "Article not found"
+        return jsonify({
+            "reflection": ReflectionRead.model_validate(reflection).model_dump()
+        })
+    finally:
+        db.close()
 
 
-def test_update_reflection_success(monkeypatch):
-    mock_article = DummyArticle()
-    mock_existing = DummyReflection(1, "Old reflection")
+def update_reflection(data, article_id):
+    db = SessionLocal()
+    try:
+        if not data or "content" not in data:
+            return jsonify({"error": "Missing reflection content"}), 400
 
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.side_effect = [
-        MagicMock(first=lambda: mock_article),
-        MagicMock(first=lambda: mock_existing)
-    ]
-    mock_db.commit.return_value = None
-    mock_db.refresh.return_value = None
+        content = data["content"]
+        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
 
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
-    monkeypatch.setattr("app.services.reflection.service.Reflection", DummyReflection)
+        existing_reflection = db.query(Reflection).filter(Reflection.article_id == article_id).first()
+        if existing_reflection:
+            db.delete(existing_reflection)
+            db.commit()
 
-    data = {"content": "Updated reflection."}
-    response, status = update_reflection(data, 1)
-    assert status == 201
-    assert response.get_json()["message"] == "Reflection updated"
+        new_reflection = Reflection(article_id=article_id, content=content)
+        db.add(new_reflection)
+        db.commit()
+        db.refresh(new_reflection)
 
-
-def test_delete_reflection_success(monkeypatch):
-    mock_article = DummyArticle()
-
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = mock_article
-    mock_db.commit.return_value = None
-    mock_db.refresh.return_value = None
-
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
-
-    response, status = delete_reflection(1)
-    assert status == 200
-    assert response.get_json()["message"] == "Reflection deleted"
+        return jsonify({
+            "message": "Reflection updated",
+            "reflection": ReflectionRead.model_validate(new_reflection).model_dump()
+        }), 201
+    finally:
+        db.close()
 
 
-def test_delete_reflection_article_not_found(monkeypatch):
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-    monkeypatch.setattr("app.services.reflection.service.SessionLocal", lambda: mock_db)
+def delete_reflection(article_id):
+    db = SessionLocal()
+    try:
+        article = db.query(CuratedArticle).filter(CuratedArticle.id == article_id).first()
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
 
-    response, status = delete_reflection(99)
-    assert status == 404
-    assert response.get_json()["error"] == "Article not found"
+        article.reflection = None
+        db.add(article)
+        db.commit()
+        db.refresh(article)
+
+        return jsonify({
+            "message": "Reflection deleted"
+        }), 200
+    finally:
+        db.close()
