@@ -9,6 +9,8 @@ import {
     deleteReflection,
     fetchTags
 } from '../api/articles';
+import Toast from 'react-bootstrap/Toast';
+import ToastContainer from 'react-bootstrap/ToastContainer';
 
 export default function Articles() {
     const [articles, setArticles] = useState([]);
@@ -18,6 +20,12 @@ export default function Articles() {
     const [maxCount, setMaxCount] = useState(5);
     const [reflectionEdits, setReflectionEdits] = useState({});
     const [filterTag, setFilterTag] = useState('');
+    const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
+
+    const showToast = (message, variant = 'success') => {
+        setToast({ show: true, message, variant });
+        setTimeout(() => setToast({ show: false, message: '', variant: 'success' }), 3000);
+    };
 
     const loadArticles = async () => {
         setLoading(true);
@@ -26,40 +34,77 @@ export default function Articles() {
             setArticles(data || []);
         } catch (err) {
             console.error('Error loading articles:', err);
+            showToast('Failed to load articles', 'danger');
         } finally {
             setLoading(false);
         }
     };
 
     const handleRedditIngest = async () => {
-        await ingestReddit(redditSub, maxCount);
-        loadArticles();
+        try {
+            await ingestReddit(redditSub, maxCount);
+            await loadArticles();
+            showToast('Reddit ingestion successful');
+        } catch (err) {
+            console.error('Reddit ingestion error:', err);
+            showToast('Reddit ingestion failed', 'danger');
+        }
     };
 
     const handleGuardianIngest = async () => {
-        await ingestGuardian(guardianSec, maxCount);
-        loadArticles();
+        try {
+            await ingestGuardian(guardianSec, maxCount);
+            await loadArticles();
+            showToast('Guardian ingestion successful');
+        } catch (err) {
+            console.error('Guardian ingestion error:', err);
+            showToast('Guardian ingestion failed', 'danger');
+        }
     };
 
     const handleToggleStatus = async (id) => {
-        await toggleReadStatus(id);
-        setArticles(prev => prev.map(a => a.id === id ? { ...a, reading_status: a.reading_status === 'read' ? 'unread' : 'read' } : a));
+        try {
+            await toggleReadStatus(id);
+            setArticles(prev => prev.map(a => a.id === id ? { ...a, reading_status: a.reading_status === 'read' ? 'unread' : 'read' } : a));
+            showToast('Toggled read status');
+        } catch (err) {
+            console.error('Error toggling read status:', err);
+            showToast('Failed to toggle read status', 'danger');
+        }
     };
 
-    const handleToggleFavorite = async (id) => {
-        await toggleFavorite(id);
-        setArticles(prev => prev.map(a => a.id === id ? { ...a, favorite: !a.favorite } : a));
+        const handleToggleFavorite = async (id) => {
+        try {
+            await toggleFavorite(id);
+            setArticles(prev => prev.map(a => a.id === id ? { ...a, favorite: !a.favorite } : a));
+            showToast('Toggled favorite status');
+        } catch (err) {
+            console.error('Error toggling favorite status:', err);
+            showToast('Failed to toggle favorite status', 'danger');
+        }
     };
 
     const handleSaveReflection = async (id, content) => {
-        await updateReflection(id, content);
-        setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: { content } } : a));
-        setReflectionEdits(prev => ({ ...prev, [id]: false }));
+        try {
+            await updateReflection(id, content);
+            setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: { content } } : a));
+            setReflectionEdits(prev => ({ ...prev, [id]: false }));
+            showToast('Reflection saved');
+        } catch (err) {
+            console.error('Error saving reflection:', err);
+            showToast('Failed to save reflection', 'danger');
+        }
     };
 
     const handleDeleteReflection = async (id) => {
-        await deleteReflection(id);
-        setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: null } : a));
+        try {
+            await deleteReflection(id);
+            setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: null } : a));
+            showToast('Reflection deleted');
+        } catch (err) {
+            console.error('Error deleting reflection:', err);
+            showToast('Failed to delete reflection', 'danger');
+        }
     };
 
     useEffect(() => {
