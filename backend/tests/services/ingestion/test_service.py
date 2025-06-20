@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import patch, MagicMock
 from flask import Flask
 from app.services.ingestion import service as ingestion_service
+from app.schemas.article import CuratedArticleCreate
+
 
 ### SCRAPER TESTS
 
@@ -23,9 +25,11 @@ def test_scrape_from_source_dispatches():
     mock_scraper.ingest.assert_called_once_with(max_count=1)
     mock_scraper.close.assert_called_once()
 
+
 def test_scrape_from_source_invalid():
     with pytest.raises(ValueError, match="Unknown source"):
         ingestion_service.scrape_from_source("invalid")
+
 
 ### METADATA EXTRACTION
 
@@ -36,15 +40,30 @@ def test_extract_metadata_url_only():
     assert "news" in result["tags"]
     assert result["estimated_reading_time_min"] == 3
 
+
 def test_extract_metadata_with_title():
     url = "https://example.com/2023/10/sample"
     result = ingestion_service.extract_metadata(source_url=url, title="Custom Title")
     assert result["title"] == "Custom Title"
 
+
 ### CURATION
 
 @patch("app.services.ingestion.service.save_curated_article")
-def test_curate_document_saves_to_db(mock_save):
+def test_curate_document(mock_save):
+    mock_save.return_value = {
+        "metadata": {
+            "title": "Test Title",
+            "author": "Author A",
+            "url": "https://example.com/news/title",
+            "estimated_reading_time_min": 3,
+            "reading_status": "unread",
+            "source": "example",
+            "tags": ["news"],
+            "favorite": False
+        }
+    }
+
     mock_db = MagicMock()
     result = ingestion_service.curate_document(
         source_url="https://example.com/news/title",
@@ -53,10 +72,11 @@ def test_curate_document_saves_to_db(mock_save):
         source="example",
         db=mock_db
     )
+
     assert result["metadata"]["title"] == "Test Title"
     assert result["metadata"]["author"] == "Author A"
     assert result["metadata"]["source"] == "example"
-    mock_save.assert_called_once()
+
 
 @patch("app.services.ingestion.service.save_curated_article")
 def test_store_curated_document_calls_save(mock_save):
@@ -64,46 +84,60 @@ def test_store_curated_document_calls_save(mock_save):
         "metadata": {
             "title": "Stored Article",
             "source": "example",
-            "source_url": "https://example.com"
+            "url": "https://example.com",
+            "estimated_reading_time_min": 3,
+            "reading_status": "unread",
+            "tags": ["example"],
+            "favorite": False
         }
     }
     ingestion_service.store_curated_document(doc)
     mock_save.assert_called_once()
 
+
 ### PROCESSING
 
 @patch("app.services.ingestion.service.scrape_from_source")
 @patch("app.services.ingestion.service.curate_document")
-def test_process_source_success(mock_curate, mock_scrape):
+@patch("app.services.ingestion.service.save_curated_article")
+def test_process_source_success(mock_save, mock_curate, mock_scrape):
     mock_scrape.return_value = [
         {"title": "Example", "url": "https://example.com", "source": "reddit"}
     ]
+
     mock_curate.return_value = {
         "metadata": {
-            "id": 1,
             "title": "Example",
             "author": "Author A",
             "url": "https://example.com",
-            "url_hash": "abc123",
             "source": "reddit",
             "estimated_reading_time_min": 3,
             "reading_status": "unread",
-            "timestamp": "2025-05-19T12:00:00Z",
-            "tags": [],
+            "tags": ["reddit"],
             "favorite": False
         }
     }
+
+    mock_save.return_value = {
+        "metadata": {
+            "title": "Example",
+            "author": "Author A",
+            "url": "https://example.com",
+            "estimated_reading_time_min": 3,
+            "reading_status": "unread",
+            "source": "reddit",
+            "tags": ["reddit"],
+            "favorite": False
+        }
+    }
+
 
     app = Flask(__name__)
     with app.test_request_context("/?max_count=1&headless=true"):
         response = ingestion_service.process_source("reddit")
         data = response.get_json()
 
-    from app.schemas.article import CuratedArticleRead
-    from dateutil.parser import parse as parse_date
-
-    data["curated"][0]["timestamp"] = parse_date(data["curated"][0]["timestamp"])
-    article = CuratedArticleRead.model_validate(data["curated"][0])
+    article = CuratedArticleCreate.model_validate(data["curated"][0])
 
     assert data["status"] == "success"
     assert data["source"] == "reddit"

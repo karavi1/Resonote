@@ -1,278 +1,236 @@
 import React, { useEffect, useState } from 'react';
-import { fetchArticles, ingestGuardian, ingestReddit } from '../api/articles';
+import {
+    fetchArticles,
+    ingestGuardian,
+    ingestReddit,
+    toggleReadStatus,
+    toggleFavorite,
+    updateReflection,
+    deleteReflection,
+    fetchTags
+} from '../api/articles';
 
 export default function Articles() {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(false);
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [redditSub, setRedditSub] = useState('news');
+    const [guardianSec, setGuardianSec] = useState('general');
+    const [maxCount, setMaxCount] = useState(5);
+    const [reflectionEdits, setReflectionEdits] = useState({});
+    const [filterTag, setFilterTag] = useState('');
 
-  const loadArticles = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchArticles();
-      setArticles(data || []);
-    } catch (err) {
-      console.error('Error loading articles:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadArticles = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchArticles();
+            setArticles(data || []);
+        } catch (err) {
+            console.error('Error loading articles:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const handleIngest = async (source) => {
-    try {
-      if (source === 'guardian') await ingestGuardian();
-      else if (source === 'reddit') await ingestReddit();
-      loadArticles();
-    } catch (err) {
-      console.error(`Ingest failed for ${source}:`, err);
-    }
-  };
+    const handleRedditIngest = async () => {
+        await ingestReddit(redditSub, maxCount);
+        loadArticles();
+    };
 
-  const toggleReadStatus = async (articleId, currentStatus) => {
-    const newStatus = currentStatus === 'read' ? 'unread' : 'read';
-    try {
-      await fetch(`http://localhost:5000/api/articles/${articleId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reading_status: newStatus })
-      });
-      loadArticles();
-    } catch (err) {
-      console.error('Error updating read status:', err);
-    }
-  };
+    const handleGuardianIngest = async () => {
+        await ingestGuardian(guardianSec, maxCount);
+        loadArticles();
+    };
 
-  useEffect(() => {
-    loadArticles();
-  }, []);
+    const handleToggleStatus = async (id) => {
+        await toggleReadStatus(id);
+        setArticles(prev => prev.map(a => a.id === id ? { ...a, reading_status: a.reading_status === 'read' ? 'unread' : 'read' } : a));
+    };
 
-  const read = articles.filter((a) => a.reading_status === 'read');
-  const unread = articles.filter((a) => a.reading_status === 'unread');
+    const handleToggleFavorite = async (id) => {
+        await toggleFavorite(id);
+        setArticles(prev => prev.map(a => a.id === id ? { ...a, favorite: !a.favorite } : a));
+    };
 
-  return (
-    <div className="px-6 py-10 space-y-8">
-      <h2 className="text-3xl font-bold">🧠 Curated Articles</h2>
+    const handleSaveReflection = async (id, content) => {
+        await updateReflection(id, content);
+        setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: { content } } : a));
+        setReflectionEdits(prev => ({ ...prev, [id]: false }));
+    };
 
-      <div className="flex gap-4">
-        <button
-          onClick={() => handleIngest('guardian')}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Ingest Guardian
-        </button>
-        <button
-          onClick={() => handleIngest('reddit')}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Ingest Reddit
-        </button>
-      </div>
+    const handleDeleteReflection = async (id) => {
+        await deleteReflection(id);
+        setArticles(prev => prev.map(a => a.id === id ? { ...a, reflection: null } : a));
+    };
 
-      <ArticleGrid title="🆕 Unread Articles" articles={unread} onToggleStatus={toggleReadStatus} />
-      <ArticleGrid title="📖 Read Articles" articles={read} onToggleStatus={toggleReadStatus} />
-    </div>
-  );
-}
+    useEffect(() => {
+        loadArticles();
+    }, []);
 
-function getGradientForTags(tags) {
-  const TAG_COLORS = {
-    science: '#60A5FA',
-    tech: '#6366F1',
-    health: '#34D399',
-    politics: '#F87171',
-    finance: '#FBBF24',
-    education: '#A78BFA',
-    culture: '#F472B6',
-    world: '#F97316',
-    story: '#f9a8d4',
-    news: '#7dd3fc',
-    may: '#d8b4fe',
-    sport: '#fca5a5',
-    default: '#D1D5DB'
-  };
+    return (
+        <div className="px-4 py-8 space-y-6">
+            <h2 className="text-3xl font-bold">🧠 Curated Articles</h2>
 
-  const selected = [...new Set((tags || []).map(t => TAG_COLORS[t.toLowerCase()] || TAG_COLORS.default))].slice(0, 3);
-  const gradient = `linear-gradient(135deg, ${selected.join(', ')})`;
-  return { backgroundImage: gradient };
-}
+            <IngestionControls
+                redditSub={redditSub}
+                setRedditSub={setRedditSub}
+                guardianSec={guardianSec}
+                setGuardianSec={setGuardianSec}
+                maxCount={maxCount}
+                setMaxCount={setMaxCount}
+                ingestReddit={handleRedditIngest}
+                ingestGuardian={handleGuardianIngest}
+            />
 
-function ArticleGrid({ title, articles, onToggleStatus }) {
-  return (
-    <div>
-      <h3 className="text-2xl font-semibold mb-4">{title}</h3>
-      {articles.length === 0 ? (
-        <p className="text-gray-500">No articles to show.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((a) => (
-            <div
-              key={a.id}
-              className="border border-gray-200 rounded-xl shadow-md p-5 flex flex-col justify-between"
-              style={getGradientForTags(a.tags)}
-            >
-              <div className="space-y-2">
-                <a
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-800 font-semibold text-lg hover:underline"
-                >
-                  {a.title}
-                </a>
-
-                <div className="text-sm text-gray-700">
-                  {a.source} • {new Date(a.timestamp).toLocaleDateString()}
-                </div>
-
-                {Array.isArray(a.tags) && a.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {a.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="bg-white bg-opacity-30 text-gray-900 text-xs px-2 py-1 rounded-full"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <button
-                  onClick={() => onToggleStatus(a.id, a.reading_status)}
-                  className="text-xs bg-white bg-opacity-40 hover:bg-opacity-60 text-gray-900 px-2 py-1 rounded"
-                >
-                  Mark as {a.reading_status === 'read' ? 'Unread' : 'Read'}
-                </button>
-
-                {a.reflection && a.reflection.content ? (
-                  <ReflectionEditor
-                    articleId={a.id}
-                    existingContent={a.reflection.content}
-                    onSaved={() => window.location.reload()}
-                  />
-                ) : (
-                  <ReflectionInput articleId={a.id} onSaved={() => window.location.reload()} />
-                )}
-              </div>
+            <div className="flex gap-2 items-center">
+                <label className="text-sm font-medium">Filter by Tag:</label>
+                <input
+                    type="text"
+                    placeholder="e.g. technology"
+                    className="border rounded px-2 py-1"
+                    value={filterTag}
+                    onChange={(e) => setFilterTag(e.target.value.toLowerCase())}
+                />
             </div>
-          ))}
+
+            {loading ? (
+                <p className="text-gray-500">Loading articles...</p>
+            ) : (
+                <ArticleSections
+                    articles={articles.filter(a => filterTag === '' || a.tags.some(t => t.name.toLowerCase().includes(filterTag)))}
+                    onToggleStatus={handleToggleStatus}
+                    onToggleFavorite={handleToggleFavorite}
+                    reflectionEdits={reflectionEdits}
+                    setReflectionEdits={setReflectionEdits}
+                    saveReflection={handleSaveReflection}
+                    deleteReflection={handleDeleteReflection}
+                />
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
-function ReflectionInput({ articleId, onSaved }) {
-  const [content, setContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+function IngestionControls({ redditSub, setRedditSub, guardianSec, setGuardianSec, maxCount, setMaxCount, ingestReddit, ingestGuardian }) {
+    const redditSubs = ['news', 'technology', 'health', 'worldnews', 'science'];
+    const guardianSecs = ['general', 'technology', 'world'];
 
-  const handleSubmit = async () => {
-    if (!content.trim()) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`http://localhost:5000/api/reflect/make/${articleId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      if (!res.ok) throw new Error('Failed to save reflection');
-      onSaved?.();
-    } catch (err) {
-      setError('Error saving reflection.');
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    return (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex flex-wrap items-center gap-2">
+                <label className="text-sm font-medium">Reddit:</label>
+                <select value={redditSub} onChange={e => setRedditSub(e.target.value)} className="border rounded px-2 py-1 bg-gray-100">
+                    {redditSubs.map((s, i) => <option key={i} value={s}>{s}</option>)}
+                </select>
+                <input
+                    type="number"
+                    value={maxCount}
+                    min={1}
+                    max={20}
+                    onChange={e => setMaxCount(Number(e.target.value))}
+                    className="w-16 border rounded px-2 py-1"
+                />
+                <button
+                    onClick={ingestReddit}
+                    className="bg-blue-600 text-white font-medium px-3 py-1.5 rounded hover:bg-blue-700"
+                >Ingest Reddit</button>
+            </div>
 
-  return (
-    <div className="mt-3 border-t pt-3">
-      <textarea
-        rows="3"
-        className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Write your reflection..."
-      />
-      <div className="flex justify-between items-center">
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-        >
-          {submitting ? 'Saving...' : 'Save'}
-        </button>
-        {error && <span className="text-red-500 text-xs">{error}</span>}
-      </div>
-    </div>
-  );
+            <div className="flex flex-wrap items-center gap-2">
+                <label className="text-sm font-medium">Guardian:</label>
+                <select value={guardianSec} onChange={e => setGuardianSec(e.target.value)} className="border rounded px-2 py-1 bg-gray-100">
+                    {guardianSecs.map((s, i) => <option key={i} value={s}>{s}</option>)}
+                </select>
+                <input
+                    type="number"
+                    value={maxCount}
+                    min={1}
+                    max={20}
+                    onChange={e => setMaxCount(Number(e.target.value))}
+                    className="w-16 border rounded px-2 py-1"
+                />
+                <button
+                    onClick={ingestGuardian}
+                    className="bg-green-600 text-white font-medium px-3 py-1.5 rounded hover:bg-green-700"
+                >Ingest Guardian</button>
+            </div>
+        </div>
+    );
 }
 
-function ReflectionEditor({ articleId, existingContent, onSaved }) {
-  const [content, setContent] = useState(existingContent);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+function ArticleSections({ articles, onToggleStatus, onToggleFavorite, reflectionEdits, setReflectionEdits, saveReflection, deleteReflection }) {
+    const grouped = articles.reduce((acc, article) => {
+        const status = article.reading_status === 'read' ? 'Read' : 'Unread';
+        const primaryTag = article.tags?.[0]?.name?.toLowerCase() || 'General';
+        if (!acc[status]) acc[status] = {};
+        if (!acc[status][primaryTag]) acc[status][primaryTag] = [];
+        acc[status][primaryTag].push(article);
+        return acc;
+    }, {});
 
-  const handleUpdate = async () => {
-    if (!content.trim()) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`http://localhost:5000/api/reflect/make/${articleId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      if (!res.ok) throw new Error('Failed to update reflection');
-      onSaved?.();
-    } catch (err) {
-      setError('Error updating reflection.');
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {['Unread', 'Read'].map(status => (
+                <div key={status}>
+                    <h3 className="text-xl font-bold mb-2">{status} Articles</h3>
+                    {grouped[status] ? (
+                        Object.entries(grouped[status]).map(([tag, articles]) => (
+                            <div key={tag} className="mb-6">
+                                <h4 className="text-md font-semibold text-gray-600 mb-2 capitalize">{tag}</h4>
+                                <ul className="space-y-4">
+                                    {articles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).map(article => (
+                                        <li key={article.id} className="border border-gray-300 rounded p-4 bg-white shadow">
+                                            <a href={article.url} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-700 hover:underline">
+                                                {article.title}
+                                            </a>
+                                            <p className="text-sm text-gray-600">{article.source} • {new Date(article.timestamp).toLocaleDateString()}</p>
 
-  const handleDelete = async () => {
-    try {
-      const res = await fetch(`http://localhost:5000/api/reflect/delete/${articleId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete reflection');
-      onSaved?.();
-    } catch (err) {
-      setError('Error deleting reflection.');
-      console.error(err);
-    }
-  };
+                                            {reflectionEdits[article.id] ? (
+                                                <div className="mt-2">
+                                                    <textarea
+                                                        defaultValue={article.reflection?.content || ''}
+                                                        onBlur={(e) => saveReflection(article.id, e.target.value)}
+                                                        className="w-full border rounded px-2 py-1 text-sm"
+                                                    />
+                                                    <button
+                                                        onClick={() => deleteReflection(article.id)}
+                                                        className="text-xs text-red-600 mt-1"
+                                                    >Delete Reflection</button>
+                                                </div>
+                                            ) : article.reflection?.content ? (
+                                                <p className="text-sm text-gray-800 mt-1 italic">
+                                                    Reflection: {article.reflection.content}{' '}
+                                                    <button
+                                                        onClick={() => setReflectionEdits(prev => ({ ...prev, [article.id]: true }))}
+                                                        className="ml-2 text-xs text-blue-600 underline"
+                                                    >Edit</button>
+                                                </p>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setReflectionEdits(prev => ({ ...prev, [article.id]: true }))}
+                                                    className="text-xs mt-1 text-gray-700 underline"
+                                                >Add Reflection</button>
+                                            )}
 
-  return (
-    <div className="mt-3 border-t pt-3">
-      <textarea
-        rows="3"
-        className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Update your reflection..."
-      />
-      <div className="flex justify-between items-center gap-2">
-        <button
-          onClick={handleUpdate}
-          disabled={submitting}
-          className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-        >
-          {submitting ? 'Saving...' : 'Update'}
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={submitting}
-          className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-        >
-          Delete
-        </button>
-        {error && <span className="text-red-500 text-xs">{error}</span>}
-      </div>
-    </div>
-  );
+                                            <div className="mt-2 flex gap-2">
+                                                <button
+                                                    onClick={() => onToggleStatus(article.id)}
+                                                    className="text-xs px-2 py-1 border border-black rounded"
+                                                >Mark as {article.reading_status === 'read' ? 'Unread' : 'Read'}</button>
+
+                                                <button
+                                                    onClick={() => onToggleFavorite(article.id)}
+                                                    className="text-xs px-2 py-1 border border-black rounded"
+                                                >{article.favorite ? 'Unfavorite' : 'Favorite'}</button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-gray-500">No {status.toLowerCase()} articles found.</p>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
 }

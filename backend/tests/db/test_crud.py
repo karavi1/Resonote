@@ -11,7 +11,7 @@ def sample_article_data():
         "metadata": {
             "title": "Test Article",
             "author": "Author",
-            "source_url": "http://example.com/article",
+            "url": "http://example.com/article",
             "estimated_reading_time_min": 5,
             "tags": ["science", "health"],
             "source": "example",

@@ -13,6 +13,10 @@ class CuratedArticleBase(BaseModel):
     reading_status: str = "unread"
     favorite: bool = False
 
+    model_config = {
+        "extra": "forbid"
+    }
+
 class CuratedArticleCreate(CuratedArticleBase):
     tags: Optional[List[str]] = []
 
@@ -23,5 +27,6 @@ class CuratedArticleRead(CuratedArticleBase):
     reflection: Optional[ReflectionRead] = None
 
     model_config = {
-        "from_attributes": True
+        "from_attributes": True,
+        "extra": "forbid"
     }

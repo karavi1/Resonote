@@ -3,7 +3,7 @@ from app.db.crud import save_curated_article
 from app.services.common import normalize_tag_name
 from app.services.ingestion.scrapers.guardian_scraper import GuardianScraper
 from app.services.ingestion.scrapers.reddit_scraper import RedditScraper
-from app.schemas.article import CuratedArticleRead
+from app.schemas.article import CuratedArticleRead, CuratedArticleCreate
 from flask import jsonify, request
 from urllib.parse import urlparse
 import re
@@ -52,7 +52,7 @@ def extract_metadata(source_url: str, title: str = None) -> dict:
         "author": None,
         "estimated_reading_time_min": 3,  # Default value
         "tags": tags[:5],
-        "source_url": source_url,
+        "url": source_url,
     }
 
 def curate_document(source_url: str, title: str = None, author: str = None, source: str = "unknown", db=None) -> dict:
@@ -61,25 +61,13 @@ def curate_document(source_url: str, title: str = None, author: str = None, sour
     if author:
         metadata["author"] = author
 
-    curated = {
+    return {
         "metadata": {
             **metadata,
             "reading_status": "unread",
             "source": source
         }
     }
-    if db:
-        save_curated_article(db, curated)
-    return curated
-
-
-def store_curated_document(doc: dict):
-    db = SessionLocal()
-    try:
-        save_curated_article(db, doc)
-        print(f"[DB] Stored: {doc['metadata']['title']}")
-    finally:
-        db.close()
 
 def process_source(source: str):
     max_count = request.args.get("max_count", default=5, type=int)
@@ -101,7 +89,7 @@ def process_source(source: str):
         for i, a in enumerate(articles):
             print(f"\nA. Article {i+1}: {a['title']}")
 
-            curated = curate_document(
+            doc = curate_document(
                 source_url=a["url"],
                 title=a["title"],
                 author=a.get("author"),
@@ -109,11 +97,17 @@ def process_source(source: str):
                 db=db
             )
 
-            if not curated:
-                print("⚠️ Skipped (missing metadata)")
+            if not doc:
+                print("Skipped (missing metadata)")
                 continue
 
-            validated = CuratedArticleRead.model_validate(curated["metadata"])
+            try:
+                validated = CuratedArticleCreate.model_validate(doc["metadata"])
+            except Exception as e:
+                print(f"❌ Skipped article due to validation error: {e}")
+                continue
+            
+            save_curated_article(db, doc)
             curated_docs.append(validated.model_dump())
 
             print("\nB. Metadata:")
@@ -129,3 +123,14 @@ def process_source(source: str):
         "ingested": len(curated_docs),
         "curated": curated_docs,
     })
+
+
+# Helper Methods
+
+def store_curated_document(doc: dict):
+    db = SessionLocal()
+    try:
+        save_curated_article(db, doc)
+        print(f"[DB] Stored: {doc['metadata']['title']}")
+    finally:
+        db.close()
