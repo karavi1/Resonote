@@ -98,11 +98,112 @@ def test_fetch_headlines_handles_missing_fields(mock_get):
 
 @patch.dict(os.environ, {"GUARDIAN_API_KEY": "test-key"})
 @patch("app.services.ingestion.scrapers.guardian_scraper.requests.get")
-def test_fetch_headlines_raises_on_http_error(mock_get):
+def test_fetch_headlines_fallback_on_all_http_errors(mock_get):
     mock_response = MagicMock()
     mock_response.raise_for_status.side_effect = Exception("HTTP error")
     mock_get.return_value = mock_response
 
     scraper = GuardianScraper()
-    with pytest.raises(Exception, match="HTTP error"):
-        scraper.fetch_headlines()
+    results = scraper.fetch_headlines()
+    assert results == []
+    assert mock_get.call_count == 3  # Ensure all fallback attempts were made
+
+@patch.dict(os.environ, {"GUARDIAN_API_KEY": "test-key"})
+@patch("app.services.ingestion.scrapers.guardian_scraper.requests.get")
+def test_excludes_corrections_and_clarifications(mock_get):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "response": {
+            "results": [
+                {
+                    "webTitle": "Corrections and Clarifications",
+                    "webUrl": "https://www.theguardian.com/media/2024/jan/01/corrections",
+                    "fields": {
+                        "byline": "Guardian Staff"
+                    }
+                }
+            ]
+        }
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_get.return_value = mock_response
+
+    scraper = GuardianScraper()
+    results = scraper.fetch_headlines()
+    assert results == []
+
+@patch.dict(os.environ, {"GUARDIAN_API_KEY": "test-key"})
+@patch("app.services.ingestion.scrapers.guardian_scraper.requests.get")
+def test_excludes_subscription_only_articles(mock_get):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "response": {
+            "results": [
+                {
+                    "webTitle": "Exclusive Analysis",
+                    "webUrl": "https://www.theguardian.com/business/2024/feb/14/exclusive-analysis",
+                    "fields": {
+                        "byline": "Columnist X",
+                        "access": "subscription"
+                    }
+                }
+            ]
+        }
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_get.return_value = mock_response
+
+    scraper = GuardianScraper()
+    results = scraper.fetch_headlines()
+    assert results == []
+
+@patch.dict(os.environ, {"GUARDIAN_API_KEY": "test-key"})
+@patch("app.services.ingestion.scrapers.guardian_scraper.requests.get")
+def test_excludes_not_accessible_for_free(mock_get):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "response": {
+            "results": [
+                {
+                    "webTitle": "Premium Insights",
+                    "webUrl": "https://www.theguardian.com/tech/2024/feb/20/premium-insights",
+                    "fields": {
+                        "byline": "Editor Z",
+                        "isAccessibleForFree": "false"
+                    }
+                }
+            ]
+        }
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_get.return_value = mock_response
+
+    scraper = GuardianScraper()
+    results = scraper.fetch_headlines()
+    assert results == []
+
+@patch.dict(os.environ, {"GUARDIAN_API_KEY": "test-key"})
+@patch("app.services.ingestion.scrapers.guardian_scraper.requests.get")
+def test_deduplicates_duplicate_urls(mock_get):
+    duplicate_article = {
+        "webTitle": "Duplicate Article",
+        "webUrl": "https://www.theguardian.com/world/duplicate-article",
+        "fields": {
+            "byline": "Same Author"
+        }
+    }
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "response": {
+            "results": [duplicate_article]
+        }
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_get.return_value = mock_response
+
+    scraper = GuardianScraper()
+    results = scraper.fetch_headlines(max_count=3)
+
+    assert len(results) == 1
+    assert results[0]["title"] == "Duplicate Article"
