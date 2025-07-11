@@ -27,3 +27,4 @@ praw
 flask_cors
 pydantic
 python-dateutil
+httpx
