@@ -92,3 +92,17 @@ def test_delete_reflection(client, monkeypatch):
     resp = client.delete("/api/reflect/delete/1")
     assert resp.status_code == 200
     assert "deleted" in resp.get_json()["message"]
+
+def test_delete_article_route(client, monkeypatch):
+    def mock_delete_article(article_id):
+        return jsonify({"message": f"Article {article_id} deleted"}), 200
+
+    monkeypatch.setattr(
+        "app.routes.core_routes.delete_article",
+        mock_delete_article
+    )
+
+    resp = client.delete("/api/articles/42/delete")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["message"] == "Article 42 deleted"

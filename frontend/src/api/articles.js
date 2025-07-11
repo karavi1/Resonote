@@ -42,6 +42,11 @@ export const toggleFavorite = async (articleId) => {
   return res.data;
 };
 
+export const deleteArticle = async (articleId) => {
+  const res = await axios.delete(`${BASE_URL}/articles/${articleId}/delete`);
+  return res.data;
+}
+
 export const updateReflection = async (articleId, content) => {
   const res = await axios.post(`${BASE_URL}/reflect/update/${articleId}`, { content });
   return res.data;

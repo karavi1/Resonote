@@ -1,5 +1,5 @@
 from app.services.ingestion.service import process_source
-from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite
+from app.services.indexing.service import list_articles, get_all_tags, mark_as_read, toggle_favorite, delete_article
 from app.services.reflection.service import make_reflection, fetch_reflection, update_reflection, delete_reflection
 from flask import Blueprint, current_app, jsonify, request
 
@@ -48,6 +48,10 @@ def mark_as_read_route(article_id):
 @core_bp.route("/articles/<int:article_id>/favorite", methods=["POST"])
 def toggle_favorite_route(article_id):
     return toggle_favorite(article_id)
+
+@core_bp.route("/articles/<int:article_id>/delete", methods=["DELETE"])
+def delete_article_route(article_id):
+    return delete_article(article_id)
 
 
 # Reflection Endpoints

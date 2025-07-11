@@ -22,13 +22,17 @@ class DummyArticle:
     source = "guardian"
     reading_status = "unread"
     estimated_reading_time_min = 4
-    favorite = DummyColumn()
+    # class-level attributes so joinedload & filters work
+    tags = []
     reflection = None
+    favorite = DummyColumn()
     timestamp = DummyColumn()
 
     def __init__(self):
+        # instance-level attributes for tests
         self.tags = []
         self.reflection = None
+        # mimic boolean for service calls
         self.favorite = False
 
 @pytest.fixture(scope="session", autouse=True)
@@ -41,17 +45,22 @@ def app_context():
 
 @pytest.fixture(autouse=True)
 def patch_models(monkeypatch):
-    monkeypatch.setattr("app.services.indexing.service.CuratedArticle", DummyArticle)
-    monkeypatch.setattr("app.services.indexing.service.joinedload", lambda x: x)
+    # stub service's CuratedArticle and joinedload
+    monkeypatch.setattr(
+        "app.services.indexing.service.CuratedArticle",
+        DummyArticle
+    )
+    monkeypatch.setattr(
+        "app.services.indexing.service.joinedload",
+        lambda attr: attr
+    )
 
 def test_list_articles(monkeypatch):
     mock_article = DummyArticle()
-    mock_article.timestamp = datetime.now(timezone.utc)  # override for schema validation
+    mock_article.timestamp = datetime.now(timezone.utc)
 
-    tag1 = MagicMock()
-    tag1.name = "science"
-    tag2 = MagicMock()
-    tag2.name = "health"
+    tag1 = MagicMock(); tag1.name = "science"
+    tag2 = MagicMock(); tag2.name = "health"
     mock_article.tags = [tag1, tag2]
 
     reflection = MagicMock()
@@ -91,13 +100,8 @@ def test_list_articles(monkeypatch):
     assert article.reflection.content == "A thoughtful note"
 
 def test_get_all_tags(monkeypatch):
-    mock_tag1 = MagicMock()
-    mock_tag1.name = "science"
-    mock_tag1.articles = [MagicMock(), MagicMock()]  # 2 articles
-
-    mock_tag2 = MagicMock()
-    mock_tag2.name = "health"
-    mock_tag2.articles = [MagicMock()]  # 1 article
+    mock_tag1 = MagicMock(); mock_tag1.name = "science"; mock_tag1.articles = [MagicMock(), MagicMock()]
+    mock_tag2 = MagicMock(); mock_tag2.name = "health";  mock_tag2.articles = [MagicMock()]
 
     mock_db = MagicMock()
     mock_db.query.return_value.all.return_value = [mock_tag1, mock_tag2]
@@ -114,11 +118,8 @@ def test_get_all_tags(monkeypatch):
     assert parsed_1.count == 1
 
 def test_mark_as_read_success():
-    mock_article = MagicMock()
-    mock_article.reading_status = "unread"
-
-    mock_db = MagicMock()
-    mock_db.get.return_value = mock_article
+    mock_article = MagicMock(); mock_article.reading_status = "unread"
+    mock_db = MagicMock(); mock_db.get.return_value = mock_article
 
     response = indexing_service.mark_as_read(1, db=mock_db)
     data = response.get_json()
@@ -128,17 +129,14 @@ def test_mark_as_read_success():
     mock_db.refresh.assert_called_once_with(mock_article)
 
 def test_mark_as_read_not_found():
-    mock_db = MagicMock()
-    mock_db.get.return_value = None
+    mock_db = MagicMock(); mock_db.get.return_value = None
 
     response, status = indexing_service.mark_as_read(999, db=mock_db)
     assert status == 404
     assert response.get_json()["error"] == "Article not found"
 
 def test_toggle_favorite():
-    mock_article = MagicMock()
-    mock_article.favorite = False
-
+    mock_article = MagicMock(); mock_article.favorite = False
     mock_db = MagicMock()
     mock_db.query.return_value.filter.return_value.first.return_value = mock_article
 
@@ -157,3 +155,39 @@ def test_toggle_favorite_not_found():
     response, status = indexing_service.toggle_favorite(999, db=mock_db)
     assert status == 404
     assert response.get_json()["error"] == "Article not found"
+
+def test_delete_article_success():
+    mock_article = MagicMock()
+    mock_article.tags = [MagicMock(), MagicMock()]
+    mock_article.reflection = MagicMock()
+
+    mock_db = MagicMock()
+    mock_query = mock_db.query.return_value
+    mock_query.options.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.first.return_value = mock_article
+
+    response = indexing_service.delete_article(1, db=mock_db)
+    data = response.get_json()
+
+    assert data["message"] == "Article deleted"
+    assert mock_article.tags == []
+    mock_db.delete.assert_any_call(mock_article.reflection)
+    mock_db.delete.assert_any_call(mock_article)
+    mock_db.commit.assert_called_once()
+    mock_db.close.assert_called_once()
+
+def test_delete_article_not_found():
+    mock_db = MagicMock()
+    mock_query = mock_db.query.return_value
+    mock_query.options.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.first.return_value = None
+
+    response, status = indexing_service.delete_article(999, db=mock_db)
+
+    assert status == 404
+    assert response.get_json()["error"] == "Article not found"
+    mock_db.delete.assert_not_called()
+    mock_db.commit.assert_not_called()
+    mock_db.close.assert_called_once()

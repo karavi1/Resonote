@@ -1,7 +1,9 @@
 import os
 import requests
+import httpx
 from urllib.parse import urlparse
 from .base_scraper import BaseScraper
+from concurrent.futures import ThreadPoolExecutor
 
 EXCLUDED_TITLES = {"corrections and clarifications"}
 EXCLUDED_ACCESS = {"subscription", "premium", "members"}
@@ -69,6 +71,7 @@ class GuardianScraper(BaseScraper):
                 if url in seen_urls:
                     continue
                 if not self.is_valid_article(title, fields):
+                    seen_urls.add(url)
                     continue
 
                 path_parts = urlparse(url).path.strip("/").split("/")

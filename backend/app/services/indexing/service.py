@@ -77,3 +77,34 @@ def toggle_favorite(article_id, db=None):
         })
     finally:
         db.close()
+
+def delete_article(article_id, db=None):
+    db = db or SessionLocal()
+    try:
+        # Load the article with its tags & reflection using class-bound attributes
+        article = (
+            db.query(CuratedArticle)
+              .options(
+                  joinedload(CuratedArticle.tags),
+                  joinedload(CuratedArticle.reflection)
+              )
+              .filter(CuratedArticle.id == article_id)
+              .first()
+        )
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+
+        # 1) clear M2M tag associations
+        article.tags.clear()
+
+        # 2) delete the one-to-one reflection (cascade delete-orphan would also handle this)
+        if article.reflection:
+            db.delete(article.reflection)
+
+        # 3) delete the article itself
+        db.delete(article)
+
+        db.commit()
+        return jsonify({"message": "Article deleted"})
+    finally:
+        db.close()
