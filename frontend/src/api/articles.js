@@ -1,7 +1,8 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 
-const BASE_URL = 'http://localhost:5000/api';
+// const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 axiosRetry(axios, {
   retries: 3,

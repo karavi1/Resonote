@@ -328,7 +328,6 @@ function ArticleSections({
                         {article.source} • {new Date(article.timestamp).toLocaleDateString()}
                       </p>
 
-                      {/* reflection UI unchanged */}
 
                       <div className="mt-2 flex gap-2">
                         <button
@@ -345,7 +344,6 @@ function ArticleSections({
                         </button>
                       </div>
 
-                      {/* Delete button */}
                       <button
                         onClick={() => onDeleteArticle(article.id)}
                         className="absolute bottom-2 right-2 text-xs font-medium px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
