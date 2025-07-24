@@ -6,3 +6,4 @@ resonote.db
 .vscode/
 .idea/
 *.log
+render.secret.yaml

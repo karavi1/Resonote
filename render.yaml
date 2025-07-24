@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: resonote-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend.gunicorn_entrypoint:app
+    envVars:
+      - key: DATABASE_USER
+      - key: DATABASE_PASSWORD
+      - key: DATABASE_HOST
+      - key: DATABASE_PORT
+      - key: DATABASE_NAME
+      - key: REDDIT_CLIENT_ID
+      - key: REDDIT_CLIENT_SECRET
+      - key: USER_AGENT
+      - key: GUARDIAN_API_KEY
+      - key: FLASK_ENV
