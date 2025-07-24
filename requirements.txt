@@ -28,3 +28,4 @@ flask_cors
 pydantic
 python-dateutil
 httpx
+gunicorn
