@@ -5,11 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: PYTHONPATH=backend gunicorn backend.gunicorn_entrypoint:app
     envVars:
-      - key: DATABASE_USER
-      - key: DATABASE_PASSWORD
-      - key: DATABASE_HOST
-      - key: DATABASE_PORT
-      - key: DATABASE_NAME
+      - key: DATABASE_URL
       - key: REDDIT_CLIENT_ID
       - key: REDDIT_CLIENT_SECRET
       - key: USER_AGENT
