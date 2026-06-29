@@ -1,17 +1,8 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from app.schemas.scraper import ScrapedArticle
 
 class BaseScraper(ABC):
-    def __init__(self, headless=True):
-        options = FirefoxOptions()
-        if headless:
-            options.add_argument("--headless")
-        self.driver = webdriver.Firefox(options=options)
-        self.driver.implicitly_wait(10)
-
     @abstractmethod
     def fetch_headlines(self, max_count=5):
         """
@@ -48,4 +39,4 @@ class BaseScraper(ABC):
         return validated
 
     def close(self):
-        self.driver.quit()
+        pass
