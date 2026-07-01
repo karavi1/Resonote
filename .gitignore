@@ -5,6 +5,8 @@ resonote.db
 *.sqlite
 .vscode/
 .idea/
+.claude/
+.DS_Store
 *.log
 render.secret.yaml
 .env.production
